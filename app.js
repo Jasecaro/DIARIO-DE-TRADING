@@ -1560,6 +1560,42 @@ function exportBackupJSON() {
   showToast('Copia de seguridad JSON descargada', 'success');
 }
 
+function triggerImportBackup() {
+  const fileInput = document.getElementById('backup-file-input');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  }
+}
+
+function importBackupJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedSessions = JSON.parse(e.target.result);
+      if (Array.isArray(importedSessions)) {
+        if (confirm(`Se encontraron ${importedSessions.length} sesiones en el archivo de respaldo. ¿Deseas restaurarlas en tu diario?`)) {
+          state.sessions = importedSessions;
+          saveToLocalStorage();
+          renderDashboard();
+          renderHistory();
+          if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
+          showToast(`¡Se restauraron ${importedSessions.length} sesiones con éxito!`, 'success');
+        }
+      } else {
+        showToast('El archivo JSON no tiene un formato válido de respaldo.', 'danger');
+      }
+    } catch (err) {
+      console.error('Error importing backup JSON:', err);
+      showToast('Error al leer el archivo de respaldo JSON.', 'danger');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function loadDemoData() {
   const realSessions = (state.sessions || []).filter(s => s.id && !String(s.id).startsWith('demo_'));
 

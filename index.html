@@ -59,9 +59,13 @@
         <button class="btn btn-danger btn-sm" onclick="clearDemoData()" title="Eliminar Datos Demo del Diario">
           <i class="fa-solid fa-trash-can"></i> Limpiar Demo
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="exportBackupJSON()" title="Exportar Copia de Seguridad">
-          <i class="fa-solid fa-download"></i> Backup
+        <button class="btn btn-secondary btn-sm" onclick="exportBackupJSON()" title="Exportar Copia de Seguridad JSON">
+          <i class="fa-solid fa-download"></i> Exportar Backup
         </button>
+        <button class="btn btn-secondary btn-sm" onclick="triggerImportBackup()" title="Importar Copia de Seguridad JSON">
+          <i class="fa-solid fa-upload"></i> Importar Backup
+        </button>
+        <input type="file" id="backup-file-input" accept=".json" style="display: none;" onchange="importBackupJSON(event)">
       </div>
     </div>
   </header>
