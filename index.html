@@ -6,6 +6,10 @@
   <title>Diario de Trading & Psicología | NotebookLM Ready</title>
   <meta name="description" content="Diario de trading profesional para cuentas de fondeo. Registro en 3 fases y exportador de reportes listo para NotebookLM.">
   
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" type="image/png" href="favicon.png">
+
   <!-- CSS -->
   <link rel="stylesheet" href="styles.css">
   
@@ -51,6 +55,9 @@
         </button>
         <button class="btn btn-secondary btn-sm" onclick="loadDemoData()" title="Cargar Datos de Prueba">
           <i class="fa-solid fa-vial"></i> Cargar Demo
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="clearDemoData()" title="Eliminar Datos Demo del Diario">
+          <i class="fa-solid fa-trash-can"></i> Limpiar Demo
         </button>
         <button class="btn btn-secondary btn-sm" onclick="exportBackupJSON()" title="Exportar Copia de Seguridad">
           <i class="fa-solid fa-download"></i> Backup
@@ -181,7 +188,7 @@
         </div>
       </div>
 
-      <form id="session-form" onsubmit="handleSaveSession(event)">
+      <form id="session-form" novalidate onsubmit="handleSaveSession(event)">
 
         <!-- STEP 1: PRE-SESSION -->
         <div id="step-content-1" class="glass-card">
@@ -534,7 +541,7 @@
             <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
               <i class="fa-solid fa-arrow-left"></i> Volver a Durante la Sesión
             </button>
-            <button type="submit" class="btn btn-success btn-lg">
+            <button type="button" onclick="handleSaveSession(event)" class="btn btn-success btn-lg">
               <i class="fa-solid fa-floppy-disk"></i> Guardar Sesión de Trading
             </button>
           </div>

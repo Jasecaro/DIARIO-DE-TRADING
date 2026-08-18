@@ -460,79 +460,111 @@ function renderDraftTradesTable() {
 
 // Complete Session Save Handler
 function handleSaveSession(event) {
-  event.preventDefault();
+  if (event) {
+    event.preventDefault();
+  }
 
-  let totalRiskSum = 0;
-  state.currentSessionAccounts.forEach(a => {
-    totalRiskSum += parseFloat(state.currentSessionAccountRisks[a] || 0);
-  });
+  try {
+    let totalRiskSum = 0;
+    if (state.currentSessionAccounts && Array.isArray(state.currentSessionAccounts)) {
+      state.currentSessionAccounts.forEach(a => {
+        totalRiskSum += parseFloat(state.currentSessionAccountRisks?.[a] || 0);
+      });
+    }
 
-  const session = {
-    id: 'session_' + Date.now(),
-    date: document.getElementById('session-date').value,
-    timeSlot: document.getElementById('session-time-slot').value,
-    account: state.currentSessionAccounts.length > 0 ? state.currentSessionAccounts.join(', ') : 'Cuenta Fondeo #1',
-    accountsList: [...state.currentSessionAccounts],
-    accountRisks: { ...state.currentSessionAccountRisks },
-    totalReplicatorRisk: totalRiskSum,
-    bias: document.getElementById('session-bias').value,
-    preEmotion: document.getElementById('session-pre-emotion').value,
-    energyScore: parseInt(document.getElementById('session-energy').value) || 8,
-    checklist: {
-      news: document.getElementById('check-news').checked,
-      levels: document.getElementById('check-levels').checked,
-      acceptLoss: document.getElementById('check-accept-loss').checked
-    },
-    folioMaestro: {
-      noDo: [
-        document.getElementById('session-nodo-1')?.value.trim() || '',
-        document.getElementById('session-nodo-2')?.value.trim() || '',
-        document.getElementById('session-nodo-3')?.value.trim() || ''
-      ].filter(Boolean),
-      improve: document.getElementById('session-improve')?.value.trim() || '',
-      ifThen: [
-        {
-          feel: document.getElementById('session-ifthen-feel-1')?.value.trim() || '',
-          do: document.getElementById('session-ifthen-do-1')?.value.trim() || ''
-        },
-        {
-          feel: document.getElementById('session-ifthen-feel-2')?.value.trim() || '',
-          do: document.getElementById('session-ifthen-do-2')?.value.trim() || ''
-        },
-        {
-          feel: document.getElementById('session-ifthen-feel-3')?.value.trim() || '',
-          do: document.getElementById('session-ifthen-do-3')?.value.trim() || ''
-        },
-        {
-          feel: document.getElementById('session-ifthen-feel-4')?.value.trim() || '',
-          do: document.getElementById('session-ifthen-do-4')?.value.trim() || ''
-        }
-      ].filter(p => p.feel || p.do)
-    },
-    trades: [...state.currentDraftTrades],
-    adherence: document.getElementById('session-adherence').value,
-    disciplineScore: parseInt(document.getElementById('session-discipline-score').value) || 9,
-    mistakes: document.getElementById('session-mistakes').value,
-    takeaway: document.getElementById('session-takeaway').value,
-    netPnl: state.currentDraftTrades.reduce((sum, t) => sum + t.pnl, 0)
-  };
+    const dateInput = document.getElementById('session-date');
+    const timeSlotInput = document.getElementById('session-time-slot');
+    const biasInput = document.getElementById('session-bias');
+    const preEmotionInput = document.getElementById('session-pre-emotion');
+    const energyInput = document.getElementById('session-energy');
+    const checkNewsInput = document.getElementById('check-news');
+    const checkLevelsInput = document.getElementById('check-levels');
+    const checkAcceptLossInput = document.getElementById('check-accept-loss');
+    const adherenceInput = document.getElementById('session-adherence');
+    const disciplineInput = document.getElementById('session-discipline-score');
+    const mistakesInput = document.getElementById('session-mistakes');
+    const takeawayInput = document.getElementById('session-takeaway');
 
-  state.sessions.unshift(session); // Add to top
-  saveToLocalStorage();
+    const session = {
+      id: 'session_' + Date.now(),
+      date: dateInput?.value || new Date().toISOString().split('T')[0],
+      timeSlot: timeSlotInput?.value || 'New York Open (8:00 AM - 11:30 AM)',
+      account: (state.currentSessionAccounts && state.currentSessionAccounts.length > 0)
+        ? state.currentSessionAccounts.join(', ')
+        : 'Cuenta Fondeo #1',
+      accountsList: state.currentSessionAccounts ? [...state.currentSessionAccounts] : [],
+      accountRisks: state.currentSessionAccountRisks ? { ...state.currentSessionAccountRisks } : {},
+      totalReplicatorRisk: totalRiskSum,
+      bias: biasInput?.value || 'Alcista (Bullish)',
+      preEmotion: preEmotionInput?.value || 'Calmado y Enfocado',
+      energyScore: parseInt(energyInput?.value) || 8,
+      checklist: {
+        news: checkNewsInput ? checkNewsInput.checked : false,
+        levels: checkLevelsInput ? checkLevelsInput.checked : false,
+        acceptLoss: checkAcceptLossInput ? checkAcceptLossInput.checked : false
+      },
+      folioMaestro: {
+        noDo: [
+          document.getElementById('session-nodo-1')?.value.trim() || '',
+          document.getElementById('session-nodo-2')?.value.trim() || '',
+          document.getElementById('session-nodo-3')?.value.trim() || ''
+        ].filter(Boolean),
+        improve: document.getElementById('session-improve')?.value.trim() || '',
+        ifThen: [
+          {
+            feel: document.getElementById('session-ifthen-feel-1')?.value.trim() || '',
+            do: document.getElementById('session-ifthen-do-1')?.value.trim() || ''
+          },
+          {
+            feel: document.getElementById('session-ifthen-feel-2')?.value.trim() || '',
+            do: document.getElementById('session-ifthen-do-2')?.value.trim() || ''
+          },
+          {
+            feel: document.getElementById('session-ifthen-feel-3')?.value.trim() || '',
+            do: document.getElementById('session-ifthen-do-3')?.value.trim() || ''
+          },
+          {
+            feel: document.getElementById('session-ifthen-feel-4')?.value.trim() || '',
+            do: document.getElementById('session-ifthen-do-4')?.value.trim() || ''
+          }
+        ].filter(p => p.feel || p.do)
+      },
+      trades: state.currentDraftTrades ? [...state.currentDraftTrades] : [],
+      adherence: adherenceInput?.value || '100% - Ejecución Perfecta según el plan',
+      disciplineScore: parseInt(disciplineInput?.value) || 9,
+      mistakes: mistakesInput?.value || '',
+      takeaway: takeawayInput?.value || '',
+      netPnl: state.currentDraftTrades ? state.currentDraftTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) : 0
+    };
 
-  // Reset Folio Maestro Inputs
-  ['session-nodo-1', 'session-nodo-2', 'session-nodo-3', 'session-improve', 'session-ifthen-feel-1', 'session-ifthen-do-1', 'session-ifthen-feel-2', 'session-ifthen-do-2', 'session-ifthen-feel-3', 'session-ifthen-do-3', 'session-ifthen-feel-4', 'session-ifthen-do-4'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+    if (!state.sessions) state.sessions = [];
+    state.sessions.unshift(session); // Add to top
+    saveToLocalStorage();
 
-  // Reset Draft
-  state.currentDraftTrades = [];
-  renderDraftTradesTable();
-  goToStep(1);
+    // Reset Folio Maestro Inputs & Textarea
+    ['session-nodo-1', 'session-nodo-2', 'session-nodo-3', 'session-improve',
+     'session-ifthen-feel-1', 'session-ifthen-do-1', 'session-ifthen-feel-2', 'session-ifthen-do-2',
+     'session-ifthen-feel-3', 'session-ifthen-do-3', 'session-ifthen-feel-4', 'session-ifthen-do-4',
+     'session-takeaway'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
 
-  showToast('¡Sesión de trading guardada con éxito!', 'success');
-  switchTab('dashboard');
+    // Reset mistakes chips
+    document.querySelectorAll('#mistakes-chips .chip').forEach(c => c.classList.remove('selected'));
+    if (mistakesInput) mistakesInput.value = '';
+
+    // Reset Draft
+    state.currentDraftTrades = [];
+    renderDraftTradesTable();
+    goToStep(1);
+
+    showToast('¡Sesión de trading guardada con éxito!', 'success');
+    switchTab('dashboard');
+  } catch (err) {
+    console.error('Error saving trading session:', err);
+    showToast('Ocurrió un error al guardar la sesión.', 'danger');
+  }
 }
 
 // Dashboard Calculations & Rendering
@@ -559,7 +591,7 @@ function renderDashboard() {
     if (s.mistakes) {
       s.mistakes.split(',').forEach(m => {
         const clean = m.trim();
-        if (clean && clean !== 'Ninguno - Seguí mi plan') {
+        if (clean && clean !== 'Ninguno - Seguí mi plan' && clean !== 'Ninguno (Plan Seguido)') {
           mistakesMap[clean] = (mistakesMap[clean] || 0) + 1;
         }
       });
@@ -1529,6 +1561,8 @@ function exportBackupJSON() {
 }
 
 function loadDemoData() {
+  const realSessions = (state.sessions || []).filter(s => s.id && !String(s.id).startsWith('demo_'));
+
   const demoSessions = [
     {
       id: 'demo_1',
@@ -1556,7 +1590,7 @@ function loadDemoData() {
       },
       adherence: '100% - Ejecución Perfecta según el plan',
       disciplineScore: 10,
-      mistakes: 'Ninguno - Seguí mi plan',
+      mistakes: 'Ninguno (Plan Seguido)',
       takeaway: 'Esperar a la barrida de liquidez en NY dio la entrada limpia. Mantener paciencia siempre.',
       netPnl: 1250.00,
       trades: [
@@ -1574,7 +1608,7 @@ function loadDemoData() {
       checklist: { news: true, levels: true, acceptLoss: false },
       adherence: '50% - Rompí algunas reglas (FOMO / Cierre temprano)',
       disciplineScore: 6,
-      mistakes: 'FOMO (Entré por miedo a perder el movimiento), Cierre Prematuro',
+      mistakes: 'Entrada Temprana / FOMO, Cierre Prematuro por Miedo',
       takeaway: 'Entré sin confirmación por prisa de ver las velas verdes mover subiendo. Ajustar rutina de respiración antes de abrir MT5.',
       netPnl: -450.00,
       trades: [
@@ -1592,7 +1626,7 @@ function loadDemoData() {
       checklist: { news: true, levels: true, acceptLoss: true },
       adherence: '100% - Ejecución Perfecta según el plan',
       disciplineScore: 9,
-      mistakes: 'Ninguno - Seguí mi plan',
+      mistakes: 'Ninguno (Plan Seguido)',
       takeaway: 'Entrada impecable en EURUSD. Respeté el TP parcial y dejé correr el runner.',
       netPnl: 880.00,
       trades: [
@@ -1608,9 +1642,9 @@ function loadDemoData() {
       preEmotion: 'Frustrado (Tras perder ayer)',
       energyScore: 5,
       checklist: { news: false, levels: true, acceptLoss: false },
-      adherence: '0% - Tilteo / Venganza / Sobrepalancamiento',
+      adherence: '0% - Total Indisciplina / Tilt',
       disciplineScore: 4,
-      mistakes: 'Trading de Venganza (Recuperar pérdida), Sobrepalancamiento (Lotaje excesivo)',
+      mistakes: 'Operar por Venganza, Sobre-lotaje (Riesgo Excesivo)',
       takeaway: '¡ALERTA DE CRISIS! Aumenté lotes tras perder el primer trade. Rompí la regla de riesgo diario. NO operar si el puntaje mental es menor a 7.',
       netPnl: -1400.00,
       trades: [
@@ -1620,12 +1654,44 @@ function loadDemoData() {
     }
   ];
 
-  state.sessions = demoSessions;
+  state.sessions = [...demoSessions, ...realSessions];
   saveToLocalStorage();
   renderDashboard();
   renderHistory();
+  if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
   showToast('¡Datos demo cargados! Explora los gráficos y reportes para NotebookLM.', 'success');
 }
+
+// Clear Demo Data Handler
+function clearDemoData() {
+  if (!state.sessions || state.sessions.length === 0) {
+    showToast('No hay sesiones registradas en el diario.', 'info');
+    return;
+  }
+
+  const demoSessionsCount = state.sessions.filter(s => s.id && String(s.id).startsWith('demo_')).length;
+
+  if (demoSessionsCount > 0) {
+    if (confirm(`¿Estás seguro de que deseas eliminar las ${demoSessionsCount} sesiones demo?`)) {
+      state.sessions = state.sessions.filter(s => !s.id || !String(s.id).startsWith('demo_'));
+      saveToLocalStorage();
+      renderDashboard();
+      renderHistory();
+      if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
+      showToast(`¡Se eliminaron ${demoSessionsCount} sesiones demo!`, 'success');
+    }
+  } else {
+    if (confirm('No se encontraron datos demo. ¿Deseas eliminar TODAS las sesiones de tu diario de trading?')) {
+      state.sessions = [];
+      saveToLocalStorage();
+      renderDashboard();
+      renderHistory();
+      if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
+      showToast('¡Todas las sesiones han sido eliminadas!', 'info');
+    }
+  }
+}
+
 
 // Toast Notifications
 function showToast(message, type = 'info') {
