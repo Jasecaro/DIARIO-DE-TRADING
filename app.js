@@ -313,8 +313,35 @@ function processImageFile(file) {
   }
   const reader = new FileReader();
   reader.onload = function(e) {
-    setImagePreview(e.target.result);
-    showToast('Pantallazo cargado correctamente', 'success');
+    const img = new Image();
+    img.onload = function() {
+      // Compress image to max 1600px width/height and 0.8 JPEG quality
+      const maxDim = 1600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to JPEG with 0.8 quality (80-90% size reduction)
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      setImagePreview(compressedBase64);
+      showToast('Pantallazo cargado y optimizado correctamente', 'success');
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
