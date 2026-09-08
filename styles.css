@@ -1498,31 +1498,26 @@ input[type="range"] {
   font-size: 0.76rem;
 }
 
-/* Trades Grid */
+/* Trades Grid - Full Width Horizontal Layout */
 .paper-trades-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
   margin-bottom: 0.5rem;
-}
-
-@media (max-width: 768px) {
-  .paper-trades-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .paper-trade-card {
   border: 1.5px solid #cbd5e1;
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 6px 10px;
   background: #ffffff;
 }
 
 .paper-trade-header {
   display: flex;
   justify-content: space-between;
-  font-size: 0.78rem;
+  align-items: center;
+  font-size: 0.8rem;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 3px;
   margin-bottom: 3px;
@@ -1532,14 +1527,18 @@ input[type="range"] {
 .paper-trade-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.74rem;
+  align-items: center;
+  font-size: 0.76rem;
   margin-bottom: 2px;
   color: #1e293b;
 }
 
 .paper-trade-row.tags-row {
-  font-size: 0.69rem;
-  color: #334155;
+  font-size: 0.74rem;
+  color: #1e293b;
+  justify-content: flex-start;
+  gap: 0.8rem;
+  flex-wrap: wrap;
 }
 
 .mini-label {
@@ -1549,7 +1548,7 @@ input[type="range"] {
 
 .paper-sketch-box {
   margin-top: 4px;
-  height: 60px;
+  height: 52px;
   border: 1px dashed #cbd5e1;
   border-radius: 4px;
   background: #fafafa;
