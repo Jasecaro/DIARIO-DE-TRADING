@@ -1822,6 +1822,7 @@ function openPaperTemplate() {
   const modal = document.getElementById('paper-template-modal');
   if (modal) {
     modal.classList.add('active');
+    document.body.classList.add('print-paper-mode');
   }
 }
 
@@ -1829,9 +1830,19 @@ function closePaperTemplate() {
   const modal = document.getElementById('paper-template-modal');
   if (modal) {
     modal.classList.remove('active');
+    document.body.classList.remove('print-paper-mode');
   }
 }
 
 function printPaperTemplate() {
+  document.body.classList.add('print-paper-mode');
   window.print();
 }
+
+window.addEventListener('afterprint', () => {
+  const modal = document.getElementById('paper-template-modal');
+  if (!modal || !modal.classList.contains('active')) {
+    document.body.classList.remove('print-paper-mode');
+  }
+});
+
