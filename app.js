@@ -106,11 +106,27 @@ function toggleChip(element, fieldId) {
   const container = element.parentElement;
   if (!container) return;
 
-  // Toggle selected state
-  element.classList.toggle('selected');
+  const text = element.innerText.trim();
+  
+  if (fieldId === 'mistakes') {
+    if (text.includes('Ninguno')) {
+      if (element.classList.contains('selected') || element.classList.contains('selected-profit')) {
+        element.classList.remove('selected', 'selected-profit');
+      } else {
+        container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected', 'selected-profit', 'selected-loss'));
+        element.classList.add('selected', 'selected-profit');
+      }
+    } else {
+      const noneChip = Array.from(container.querySelectorAll('.chip')).find(c => c.innerText.includes('Ninguno'));
+      if (noneChip) noneChip.classList.remove('selected', 'selected-profit', 'selected-loss');
+      element.classList.toggle('selected');
+    }
+  } else {
+    element.classList.toggle('selected');
+  }
 
   // Collect selected chip texts
-  const selected = Array.from(container.querySelectorAll('.chip.selected')).map(c => c.innerText.trim());
+  const selected = Array.from(container.querySelectorAll('.chip.selected, .chip.selected-profit')).map(c => c.innerText.trim());
   const hiddenInput = document.getElementById(`session-${fieldId}`);
   if (hiddenInput) {
     hiddenInput.value = selected.join(', ');
@@ -276,12 +292,33 @@ function openTradeModal(editIndex = -1) {
     if (trade.chartImage) {
       setImagePreview(trade.chartImage);
     }
+
+    // Sync modal trade chips
+    const tradeTags = (trade.tags || '').split(',').map(t => t.trim());
+    document.querySelectorAll('#modal-trade-chips .chip').forEach(chip => {
+      const chipText = chip.innerText.trim();
+      if (tradeTags.includes(chipText)) {
+        chip.classList.add('selected');
+        if (chipText.includes('Plan')) chip.classList.add('selected-profit');
+      } else {
+        chip.classList.remove('selected', 'selected-profit');
+      }
+    });
   } else {
     modalTitle.innerHTML = '<i class="fa-solid fa-chart-line"></i> Registrar Trade en Vivo';
     form.reset();
     document.getElementById('modal-lots').value = '1.0';
     document.getElementById('modal-pnl').value = '350.00';
     document.getElementById('modal-rr').value = '2.5';
+    document.getElementById('modal-trade-tags').value = 'Plan Ejecutado 100%';
+
+    document.querySelectorAll('#modal-trade-chips .chip').forEach(chip => {
+      if (chip.innerText.includes('Plan')) {
+        chip.classList.add('selected', 'selected-profit');
+      } else {
+        chip.classList.remove('selected', 'selected-profit');
+      }
+    });
   }
 
   modal.classList.add('active');
@@ -293,8 +330,11 @@ function closeTradeModal() {
 
 function toggleTradeChip(element) {
   element.classList.toggle('selected');
+  if (element.innerText.includes('Plan')) {
+    element.classList.toggle('selected-profit', element.classList.contains('selected'));
+  }
   const container = element.parentElement;
-  const selected = Array.from(container.querySelectorAll('.chip.selected')).map(c => c.innerText.trim());
+  const selected = Array.from(container.querySelectorAll('.chip.selected, .chip.selected-profit')).map(c => c.innerText.trim());
   document.getElementById('modal-trade-tags').value = selected.join(', ');
 }
 
@@ -820,7 +860,11 @@ function renderErrorsChart(mistakesMap) {
           '#7c3aed',
           '#2563eb',
           '#0891b2',
-          '#db2777'
+          '#db2777',
+          '#ea580c',
+          '#0284c7',
+          '#9333ea',
+          '#4f46e5'
         ],
         borderWidth: 2,
         borderColor: '#ffffff'

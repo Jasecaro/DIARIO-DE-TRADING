@@ -525,6 +525,7 @@
               <label><i class="fa-solid fa-triangle-exclamation"></i> Errores Cometidos Hoy</label>
               <div class="chip-group" id="mistakes-chips">
                 <div class="chip" onclick="toggleChip(this, 'mistakes')">Ninguno (Plan Seguido)</div>
+                <div class="chip" onclick="toggleChip(this, 'mistakes')">Error Técnico / Mala Lectura</div>
                 <div class="chip" onclick="toggleChip(this, 'mistakes')">Sobre-operar (Overtrading)</div>
                 <div class="chip" onclick="toggleChip(this, 'mistakes')">Mover el Stop Loss / Sin Stop</div>
                 <div class="chip" onclick="toggleChip(this, 'mistakes')">Operar por Venganza</div>
@@ -745,6 +746,7 @@
           <label><i class="fa-solid fa-tags"></i> Psicología / Estado de la Ejecución</label>
           <div class="chip-group" id="modal-trade-chips">
             <div class="chip selected-profit" onclick="toggleTradeChip(this)">Plan Ejecutado 100%</div>
+            <div class="chip" onclick="toggleTradeChip(this)">Error Técnico / Mala Lectura</div>
             <div class="chip" onclick="toggleTradeChip(this)">FOMO / Entrada Con Prisa</div>
             <div class="chip" onclick="toggleTradeChip(this)">Cierre Prematuro</div>
             <div class="chip" onclick="toggleTradeChip(this)">Revenge Trade (Venganza)</div>
@@ -1037,7 +1039,7 @@
                   <span class="mini-label">Setup:</span> [ &nbsp; ] OB+Liq &nbsp; [ &nbsp; ] FVG &nbsp; [ &nbsp; ] Breakout &nbsp; [ &nbsp; ] Scalp &nbsp; [ &nbsp; ] Rev &nbsp; [ &nbsp; ] Otro
                 </div>
                 <div class="paper-trade-row tags-row">
-                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
+                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] Error Téc &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
                 </div>
                 <div class="paper-sketch-box" style="height: 75px;">
                   <div class="sketch-watermark">Esquema del Setup / Notas del Trade #1</div>
@@ -1064,7 +1066,7 @@
                   <span class="mini-label">Setup:</span> [ &nbsp; ] OB+Liq &nbsp; [ &nbsp; ] FVG &nbsp; [ &nbsp; ] Breakout &nbsp; [ &nbsp; ] Scalp &nbsp; [ &nbsp; ] Rev &nbsp; [ &nbsp; ] Otro
                 </div>
                 <div class="paper-trade-row tags-row">
-                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
+                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] Error Téc &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
                 </div>
                 <div class="paper-sketch-box" style="height: 75px;">
                   <div class="sketch-watermark">Esquema del Setup / Notas del Trade #2</div>
@@ -1091,7 +1093,7 @@
                   <span class="mini-label">Setup:</span> [ &nbsp; ] OB+Liq &nbsp; [ &nbsp; ] FVG &nbsp; [ &nbsp; ] Breakout &nbsp; [ &nbsp; ] Scalp &nbsp; [ &nbsp; ] Rev &nbsp; [ &nbsp; ] Otro
                 </div>
                 <div class="paper-trade-row tags-row">
-                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
+                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] Error Téc &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
                 </div>
                 <div class="paper-sketch-box" style="height: 75px;">
                   <div class="sketch-watermark">Esquema del Setup / Notas del Trade #3</div>
@@ -1118,7 +1120,7 @@
                   <span class="mini-label">Setup:</span> [ &nbsp; ] OB+Liq &nbsp; [ &nbsp; ] FVG &nbsp; [ &nbsp; ] Breakout &nbsp; [ &nbsp; ] Scalp &nbsp; [ &nbsp; ] Rev &nbsp; [ &nbsp; ] Otro
                 </div>
                 <div class="paper-trade-row tags-row">
-                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
+                  <span class="mini-label">Psicología:</span> [ &nbsp; ] Plan 100% &nbsp; [ &nbsp; ] Error Téc &nbsp; [ &nbsp; ] FOMO &nbsp; [ &nbsp; ] Cierre Prem &nbsp; [ &nbsp; ] Revenge &nbsp; [ &nbsp; ] Moví SL
                 </div>
                 <div class="paper-sketch-box" style="height: 75px;">
                   <div class="sketch-watermark">Esquema del Setup / Notas del Trade #4</div>
@@ -1163,6 +1165,7 @@
               <div class="paper-sublabel">ERRORES COMETIDOS HOY (MARCAR SI APLICA)</div>
               <div class="paper-checklist-grid">
                 <div>[ &nbsp; ] Ninguno (Plan seguido)</div>
+                <div>[ &nbsp; ] Error Técnico / Mala Lectura</div>
                 <div>[ &nbsp; ] Sobre-operar (Overtrading)</div>
                 <div>[ &nbsp; ] Mover SL / Sin Stop Loss</div>
                 <div>[ &nbsp; ] Operar por Venganza</div>
@@ -1197,14 +1200,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toast-container"></div>
-
-  <!-- App JavaScript Logic -->
-  <script src="app.js"></script>
-</body>
-</html>
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
