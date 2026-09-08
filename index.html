@@ -27,7 +27,7 @@
   <!-- Header Navigation -->
   <header>
     <div class="header-container">
-      <a href="#" class="logo" onclick="switchTab('dashboard')">
+      <a href="#" class="logo" onclick="switchTab('home'); return false;">
         <div class="logo-icon">
           <i class="fa-solid fa-chart-line"></i>
         </div>
@@ -38,16 +38,19 @@
       </a>
 
       <nav>
-        <button class="nav-btn active" onclick="switchTab('dashboard')">
+        <button class="nav-btn active" id="nav-btn-home" onclick="switchTab('home')">
+          <i class="fa-solid fa-house"></i> Inicio
+        </button>
+        <button class="nav-btn" id="nav-btn-dashboard" onclick="switchTab('dashboard')">
           <i class="fa-solid fa-gauge-high"></i> Dashboard
         </button>
-        <button class="nav-btn" onclick="switchTab('new-session')">
+        <button class="nav-btn" id="nav-btn-new-session" onclick="switchTab('new-session')">
           <i class="fa-solid fa-plus-circle"></i> Nueva Sesión
         </button>
-        <button class="nav-btn" onclick="switchTab('history')">
+        <button class="nav-btn" id="nav-btn-history" onclick="switchTab('history')">
           <i class="fa-solid fa-clock-rotate-left"></i> Historial
         </button>
-        <button class="nav-btn" onclick="switchTab('notebooklm')">
+        <button class="nav-btn" id="nav-btn-notebooklm" onclick="switchTab('notebooklm')">
           <i class="fa-solid fa-brain"></i> Reportes NotebookLM
         </button>
       </nav>
@@ -70,21 +73,34 @@
           </div>
         </div>
 
-        <button class="btn btn-primary btn-sm" onclick="openPaperTemplate()" title="Plantilla para Imprimir en Papel (Lápiz)">
-          <i class="fa-solid fa-print"></i> Plantilla Papel
+        <!-- Botón rápido Plantilla Papel -->
+        <button class="btn btn-secondary btn-sm header-print-btn" onclick="openPaperTemplate()" title="Plantilla para Imprimir en Papel (Lápiz)">
+          <i class="fa-solid fa-print"></i> Papel
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="loadDemoData()" title="Cargar Datos de Prueba">
-          <i class="fa-solid fa-vial"></i> Cargar Demo
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="clearDemoData()" title="Eliminar Datos Demo del Diario">
-          <i class="fa-solid fa-trash-can"></i> Limpiar Demo
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="exportBackupJSON()" title="Exportar Copia de Seguridad JSON">
-          <i class="fa-solid fa-download"></i> Exportar Backup
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="triggerImportBackup()" title="Importar Copia de Seguridad JSON">
-          <i class="fa-solid fa-upload"></i> Importar Backup
-        </button>
+
+        <!-- Dropdown Descongestionado de Opciones Rápidas -->
+        <div class="header-dropdown-wrap">
+          <button type="button" class="btn btn-secondary btn-sm dropdown-trigger" onclick="toggleHeaderToolsMenu(event)" title="Opciones de datos y utilidades">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div class="header-dropdown-menu" id="header-tools-menu">
+            <div class="dropdown-header">Respaldo de Datos</div>
+            <button type="button" class="dropdown-item" onclick="exportBackupJSON(); closeHeaderToolsMenu();">
+              <i class="fa-solid fa-download"></i> Exportar Backup JSON
+            </button>
+            <button type="button" class="dropdown-item" onclick="triggerImportBackup(); closeHeaderToolsMenu();">
+              <i class="fa-solid fa-upload"></i> Importar Backup JSON
+            </button>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-header">Entorno de Pruebas</div>
+            <button type="button" class="dropdown-item text-info" onclick="loadDemoData(); closeHeaderToolsMenu();">
+              <i class="fa-solid fa-vial"></i> Cargar Datos Demo
+            </button>
+            <button type="button" class="dropdown-item text-danger" onclick="clearDemoData(); closeHeaderToolsMenu();">
+              <i class="fa-solid fa-trash-can"></i> Limpiar Datos Demo
+            </button>
+          </div>
+        </div>
         <input type="file" id="backup-file-input" accept=".json" style="display: none;" onchange="importBackupJSON(event)">
       </div>
     </div>
@@ -93,8 +109,258 @@
   <!-- Main Application Container -->
   <main class="app-container">
 
+    <!-- TAB 0: PORTADA / HOME HUB -->
+    <section id="tab-home" class="tab-content active">
+      
+      <!-- Market Sessions Ticker Bar -->
+      <div class="market-sessions-bar">
+        <div class="market-bar-title">
+          <span class="pulse-icon"></span>
+          <span>SESIONES MUNDIALES</span>
+        </div>
+        <div class="market-tickers-container">
+          <div class="market-ticker-pill" id="ticker-ny">
+            <span class="ticker-dot"></span>
+            <span class="ticker-flag">🇺🇸</span>
+            <span class="ticker-name">Nueva York</span>
+            <span class="ticker-badge" id="badge-ny">Calculando...</span>
+          </div>
+          <div class="market-ticker-pill" id="ticker-london">
+            <span class="ticker-dot"></span>
+            <span class="ticker-flag">🇬🇧</span>
+            <span class="ticker-name">Londres</span>
+            <span class="ticker-badge" id="badge-london">Calculando...</span>
+          </div>
+          <div class="market-ticker-pill" id="ticker-asia">
+            <span class="ticker-dot"></span>
+            <span class="ticker-flag">🇯🇵</span>
+            <span class="ticker-name">Tokio / Asia</span>
+            <span class="ticker-badge" id="badge-asia">Calculando...</span>
+          </div>
+        </div>
+        <div class="market-local-clock" id="market-local-clock">
+          <i class="fa-regular fa-clock"></i> <span id="clock-display">--:--:--</span>
+        </div>
+      </div>
+
+      <!-- Hero Section con Identidad de Trading -->
+      <div class="home-hero">
+        <div class="hero-tag">
+          <i class="fa-solid fa-shield-halved"></i> SISTEMA OPERATIVO DE EJECUCIÓN & PSICOLOGÍA
+        </div>
+        <h1 class="home-hero-title">
+          Tu ventaja real no es adivinar el mercado.<br>
+          <span class="text-gradient">Es dominar tu propia ejecución.</span>
+        </h1>
+        <p class="home-hero-desc">
+          Un santuario de trabajo diseñado para traders de cuentas de fondeo y futuros. 
+          Planifica tu riesgo antes de la campana, registra sin emociones y audita tus sesgos psicológicos con Inteligencia Artificial.
+        </p>
+
+        <!-- Píldora de Psicología & Mindset -->
+        <div class="home-mindset-pill">
+          <div class="mindset-header">
+            <div class="mindset-title">
+              <i class="fa-solid fa-brain"></i>
+              <span>MENTALIDAD DEL DÍA</span>
+            </div>
+            <button type="button" class="btn-refresh-mindset" onclick="cycleMindsetQuote()" title="Ver otra reflexión">
+              <i class="fa-solid fa-shuffle"></i> Nueva Reflexión
+            </button>
+          </div>
+          <div class="mindset-content">
+            <p class="mindset-quote" id="home-quote-text">
+              "El mercado es un espejo que refleja tus más profundas emociones y creencias sobre el dinero. Cuando dejas de intentar tener la razón, comienzas a extraer dinero con disciplina."
+            </p>
+            <span class="mindset-author" id="home-quote-author">— Mark Douglas, Trading in the Zone</span>
+          </div>
+          
+          <!-- Mini Check Emocional Previo -->
+          <div class="mindset-check">
+            <span class="mindset-check-label">Tu estado mental hoy:</span>
+            <div class="mindset-check-options">
+              <button type="button" class="state-btn" onclick="selectQuickMood('calm', this)">
+                🎯 Calmo y Paciente
+              </button>
+              <button type="button" class="state-btn" onclick="selectQuickMood('cautious', this)">
+                🛡️ Alerta / Cauteloso
+              </button>
+              <button type="button" class="state-btn" onclick="selectQuickMood('fatigued', this)">
+                ⚠️ Ansioso o Cansado
+              </button>
+            </div>
+            <div id="mindset-feedback-message" class="mindset-feedback-message" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Portales de Entrada Principales (3 Gateways) -->
+      <div class="home-gateways-grid">
+        
+        <!-- Portal 1: Iniciar Sesión Operativa -->
+        <div class="gateway-card primary-theme">
+          <div class="gateway-card-badge">FASE 1: PRE-MERCADO</div>
+          <div class="gateway-icon-wrap">
+            <i class="fa-solid fa-play"></i>
+          </div>
+          <h2 class="gateway-card-title">Comenzar Sesión de Hoy</h2>
+          <p class="gateway-card-desc">
+            Define tu sesgo directivo, chequea noticias de alto impacto, ajusta tu riesgo replicador por cuenta y revisa tu estado emocional antes de abrir posiciones.
+          </p>
+          <div class="gateway-card-footer">
+            <button type="button" class="btn btn-primary btn-block btn-gateway" onclick="switchTab('new-session')">
+              <i class="fa-solid fa-bolt"></i> Abrir Wizard Pre-Mercado
+            </button>
+          </div>
+        </div>
+
+        <!-- Portal 2: Dashboard & Métricas -->
+        <div class="gateway-card stats-theme">
+          <div class="gateway-card-badge">TERMINAL DE MÉTRICAS</div>
+          <div class="gateway-icon-wrap">
+            <i class="fa-solid fa-gauge-high"></i>
+          </div>
+          <h2 class="gateway-card-title">Métricas & Curva de Capital</h2>
+          <p class="gateway-card-desc">
+            Revisa tu P&L acumulado, tasa de acierto (Win Rate), consistencia, Profit Factor y causas principales de pérdidas en tiempo real.
+          </p>
+          
+          <!-- Mini resumen en vivo -->
+          <div class="gateway-mini-stats">
+            <div class="mini-stat-item">
+              <span class="stat-lbl">P&L Neto</span>
+              <strong class="stat-val" id="home-stat-pnl">$0.00</strong>
+            </div>
+            <div class="mini-stat-item">
+              <span class="stat-lbl">Win Rate</span>
+              <strong class="stat-val" id="home-stat-winrate">0.0%</strong>
+            </div>
+            <div class="mini-stat-item">
+              <span class="stat-lbl">Sesiones</span>
+              <strong class="stat-val" id="home-stat-sessions">0</strong>
+            </div>
+          </div>
+
+          <div class="gateway-card-footer">
+            <button type="button" class="btn btn-secondary btn-block btn-gateway" onclick="switchTab('dashboard')">
+              <i class="fa-solid fa-chart-line"></i> Explorar Dashboard
+            </button>
+          </div>
+        </div>
+
+        <!-- Portal 3: Bóveda Cloud Supabase -->
+        <div class="gateway-card cloud-theme" id="home-cloud-card">
+          <div class="gateway-card-badge" id="home-cloud-badge">BÓVEDA POSTGRESQL</div>
+          <div class="gateway-icon-wrap">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <h2 class="gateway-card-title" id="home-cloud-title">Sincronización en la Nube</h2>
+          <p class="gateway-card-desc" id="home-cloud-desc">
+            Seguridad y persistencia total con Supabase. Cifrado RLS para que solo tú tengas acceso a tu bitácora desde cualquier computador.
+          </p>
+
+          <div class="home-cloud-status-box" id="home-cloud-status-box">
+            <div class="cloud-offline-state" id="cloud-offline-view">
+              <i class="fa-solid fa-laptop"></i>
+              <span>Modo Local Activo (Navegador)</span>
+            </div>
+            <div class="cloud-online-state" id="cloud-online-view" style="display: none;">
+              <span class="cloud-dot"></span>
+              <span id="home-cloud-user-email">usuario@correo.com</span>
+            </div>
+          </div>
+
+          <div class="gateway-card-footer">
+            <button type="button" class="btn btn-outline-primary btn-block btn-gateway" id="home-cloud-action-btn" onclick="openAuthModal('login')">
+              <i class="fa-solid fa-right-to-bracket"></i> Conectar / Crear Cuenta
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Centro de Herramientas Rápidas del Trader -->
+      <div class="home-tools-section">
+        <div class="section-header-wrap">
+          <div>
+            <h3 class="section-heading"><i class="fa-solid fa-toolbox"></i> Caja de Herramientas del Trader</h3>
+            <p class="section-subheading">Recursos complementarios para tu operativa diaria y análisis avanzado</p>
+          </div>
+        </div>
+
+        <div class="tools-grid">
+          
+          <!-- Tool 1: Plantilla de Papel -->
+          <div class="tool-card" onclick="openPaperTemplate()">
+            <div class="tool-icon"><i class="fa-solid fa-print"></i></div>
+            <div class="tool-info">
+              <h4>Plantilla de Papel (Imprimible)</h4>
+              <p>Diseño limpio sin tinta negra pesada. Registra a lápiz en vivo durante la campana y transcribe al terminar.</p>
+            </div>
+            <div class="tool-action-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <!-- Tool 2: NotebookLM -->
+          <div class="tool-card" onclick="switchTab('notebooklm')">
+            <div class="tool-icon brain"><i class="fa-solid fa-brain"></i></div>
+            <div class="tool-info">
+              <h4>Auditoría IA con NotebookLM</h4>
+              <p>Genera reportes de texto estructurados para que Google NotebookLM detecte patrones de tilt y errores repetitivos.</p>
+            </div>
+            <div class="tool-action-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <!-- Tool 3: Historial Completo -->
+          <div class="tool-card" onclick="switchTab('history')">
+            <div class="tool-icon history"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="tool-info">
+              <h4>Bitácora Histórica</h4>
+              <p>Revisa cada sesión pasada, capturas de pantalla, notas de ejecución y evolución de disciplina por fecha.</p>
+            </div>
+            <div class="tool-action-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <!-- Tool 4: Copias de Respaldo -->
+          <div class="tool-card" onclick="exportBackupJSON()">
+            <div class="tool-icon backup"><i class="fa-solid fa-file-shield"></i></div>
+            <div class="tool-info">
+              <h4>Exportar Respaldo JSON</h4>
+              <p>Descarga un archivo local con todas tus sesiones para guardar en tu disco o migrar cuando quieras.</p>
+            </div>
+            <div class="tool-action-arrow"><i class="fa-solid fa-download"></i></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- El Código del Trader Disciplinado (3 Fases Visuales) -->
+      <div class="home-manifesto-section">
+        <h3 class="manifesto-heading">El Método de las 3 Fases</h3>
+        <p class="manifesto-sub">La disciplina no es un talento; es una estructura que se ejecuta diariamente.</p>
+        
+        <div class="manifesto-grid">
+          <div class="manifesto-step">
+            <div class="step-num">01</div>
+            <h4>Pre-Sesión: Filtro & Blindaje</h4>
+            <p>Define tu pérdida máxima antes de mirar una vela. Si la mente está ansiosa o hay noticias rojas inminentes, el mejor trade es no operar.</p>
+          </div>
+          <div class="manifesto-step">
+            <div class="step-num">02</div>
+            <h4>En Sesión: Ejecución Mecánica</h4>
+            <p>Gestiona los contratos del replicador con precisión milimétrica. Deja correr la ventaja y respeta el stop loss sin titubear.</p>
+          </div>
+          <div class="manifesto-step">
+            <div class="step-num">03</div>
+            <h4>Post-Sesión: Auditoría Honesta</h4>
+            <p>Califica tu adherencia al plan. Separa el dolor de perder dinero de la satisfacción de haber sido 100% disciplinado.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
     <!-- TAB 1: DASHBOARD METRICS & CHARTS -->
-    <section id="tab-dashboard" class="tab-content active">
+    <section id="tab-dashboard" class="tab-content">
       <!-- Top Metrics -->
       <div class="metrics-grid">
         <div class="metric-card profit-theme">

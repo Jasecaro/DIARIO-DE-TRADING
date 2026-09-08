@@ -30,8 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeDefaults();
   renderDashboard();
   renderHistory();
+  renderHomeMetrics();
   generateNotebookLMReport();
   initSupabase();
+  initMarketSessionsClock();
+  initMindsetQuotes();
 });
 
 // Load / Save LocalStorage
@@ -49,6 +52,7 @@ function loadFromLocalStorage() {
 
 function saveToLocalStorage() {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.sessions));
+  renderHomeMetrics();
 }
 
 function initializeDefaults() {
@@ -68,13 +72,15 @@ function switchTab(tabId) {
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-  const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.getAttribute('onclick')?.includes(tabId));
+  const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.getAttribute('onclick')?.includes(`'${tabId}'`));
   if (activeBtn) activeBtn.classList.add('active');
 
   const targetContent = document.getElementById(`tab-${tabId}`);
   if (targetContent) targetContent.classList.add('active');
 
-  if (tabId === 'dashboard') {
+  if (tabId === 'home') {
+    renderHomeMetrics();
+  } else if (tabId === 'dashboard') {
     renderDashboard();
   } else if (tabId === 'history') {
     renderHistory();
@@ -1934,6 +1940,11 @@ function updateAuthUI(isLoggedIn, userEmail = '') {
     if (btnLogin) btnLogin.style.display = 'inline-flex';
     if (userLoggedBox) userLoggedBox.style.display = 'none';
   }
+
+  // Sincronizar estado de la tarjeta de la nube en la portada
+  if (typeof updateHomeCloudCard === 'function') {
+    updateHomeCloudCard();
+  }
 }
 
 // Control del Modal de Autenticación
@@ -2304,10 +2315,282 @@ async function confirmCloudMigration() {
   }
 }
 
-// Cerrar modales al hacer clic en el backdrop oscuro
+// Cerrar modales y menú desplegable al hacer clic fuera
 document.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'auth-modal') closeAuthModal();
   if (e.target && e.target.id === 'migrate-modal') dismissMigrationModal();
+  
+  // Cerrar menú de herramientas del header si se hace clic fuera
+  const dropdownWrap = document.querySelector('.header-dropdown-wrap');
+  if (dropdownWrap && !dropdownWrap.contains(e.target)) {
+    closeHeaderToolsMenu();
+  }
 });
+
+/* ==========================================================================
+   TAB 0: PORTADA & HOME HUB INTERACTIVITY
+   ========================================================================== */
+
+// 1. Mini Métricas en Tiempo Real para la Portada
+function renderHomeMetrics() {
+  const pnlEl = document.getElementById('home-stat-pnl');
+  const winrateEl = document.getElementById('home-stat-winrate');
+  const sessionsEl = document.getElementById('home-stat-sessions');
+
+  if (!state.sessions || state.sessions.length === 0) {
+    if (pnlEl) {
+      pnlEl.innerText = '$0.00';
+      pnlEl.style.color = 'var(--text-main)';
+    }
+    if (winrateEl) winrateEl.innerText = '0.0%';
+    if (sessionsEl) sessionsEl.innerText = '0';
+  } else {
+    let totalPnl = 0;
+    let winningSessions = 0;
+
+    state.sessions.forEach(session => {
+      const pnl = parseFloat(session.netPnl || 0);
+      totalPnl += pnl;
+      if (pnl > 0) winningSessions++;
+    });
+
+    const winRate = state.sessions.length > 0 
+      ? ((winningSessions / state.sessions.length) * 100).toFixed(1)
+      : '0.0';
+
+    if (pnlEl) {
+      pnlEl.innerText = (totalPnl >= 0 ? '+' : '') + `$${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      pnlEl.style.color = totalPnl >= 0 ? 'var(--profit)' : 'var(--loss)';
+    }
+
+    if (winrateEl) winrateEl.innerText = `${winRate}%`;
+    if (sessionsEl) sessionsEl.innerText = `${state.sessions.length}`;
+  }
+
+  // Actualizar Tarjeta de Supabase en la Portada
+  updateHomeCloudCard();
+}
+
+function updateHomeCloudCard() {
+  const offlineView = document.getElementById('cloud-offline-view');
+  const onlineView = document.getElementById('cloud-online-view');
+  const userEmailEl = document.getElementById('home-cloud-user-email');
+  const badgeEl = document.getElementById('home-cloud-badge');
+  const actionBtn = document.getElementById('home-cloud-action-btn');
+
+  if (state.currentUser) {
+    if (offlineView) offlineView.style.display = 'none';
+    if (onlineView) onlineView.style.display = 'flex';
+    if (userEmailEl) userEmailEl.innerText = state.currentUser.email || 'Conectado';
+    if (badgeEl) badgeEl.innerText = 'NUBE ACTIVA (RLS)';
+    if (actionBtn) {
+      actionBtn.className = 'btn btn-secondary btn-block btn-gateway';
+      actionBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Sincronizado ✓';
+      actionBtn.onclick = () => showToast(`Conectado a la nube como: ${state.currentUser.email}`, 'success');
+    }
+  } else {
+    if (offlineView) offlineView.style.display = 'flex';
+    if (onlineView) onlineView.style.display = 'none';
+    if (badgeEl) badgeEl.innerText = 'BÓVEDA POSTGRESQL';
+    if (actionBtn) {
+      actionBtn.className = 'btn btn-outline-primary btn-block btn-gateway';
+      actionBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Conectar / Crear Cuenta';
+      actionBtn.onclick = () => openAuthModal('login');
+    }
+  }
+}
+
+// 2. Reloj y Monitor de Sesiones Mundiales de Mercado
+let marketSessionsInterval = null;
+
+function initMarketSessionsClock() {
+  updateMarketSessionsClock();
+  if (!marketSessionsInterval) {
+    marketSessionsInterval = setInterval(updateMarketSessionsClock, 1000);
+  }
+}
+
+function updateMarketSessionsClock() {
+  const now = new Date();
+  
+  // Reloj local HH:MM:SS
+  const clockEl = document.getElementById('clock-display');
+  if (clockEl) {
+    clockEl.innerText = now.toLocaleTimeString('es-ES', { hour12: false });
+  }
+
+  // Cálculos en Horario UTC
+  const utcDay = now.getUTCDay(); // 0 = Domingo, 6 = Sábado
+  const utcHours = now.getUTCHours();
+  const utcMinutes = now.getUTCMinutes();
+  const utcTimeDec = utcHours + (utcMinutes / 60);
+
+  const isWeekend = (utcDay === 6 || (utcDay === 0 && utcHours < 22)); // Sábado completo o Domingo antes de sesión asiática
+
+  // 1. Nueva York (NYSE / NASDAQ):
+  // RTH: 14:30 - 21:00 UTC (9:30 AM - 4:00 PM EST)
+  // Pre-market: 12:00 - 14:30 UTC (7:00 AM - 9:30 AM EST)
+  const nyPill = document.getElementById('ticker-ny');
+  const nyBadge = document.getElementById('badge-ny');
+  if (nyPill && nyBadge) {
+    if (isWeekend) {
+      nyPill.className = 'market-ticker-pill closed';
+      nyBadge.innerText = 'Cerrado';
+    } else if (utcTimeDec >= 14.5 && utcTimeDec < 21.0) {
+      nyPill.className = 'market-ticker-pill open';
+      nyBadge.innerText = 'Abierto';
+    } else if (utcTimeDec >= 12.0 && utcTimeDec < 14.5) {
+      nyPill.className = 'market-ticker-pill pre-market';
+      nyBadge.innerText = 'Pre-Mercado';
+    } else {
+      nyPill.className = 'market-ticker-pill closed';
+      nyBadge.innerText = 'Cerrado';
+    }
+  }
+
+  // 2. Londres (LSE):
+  // 08:00 - 16:30 UTC
+  const londonPill = document.getElementById('ticker-london');
+  const londonBadge = document.getElementById('badge-london');
+  if (londonPill && londonBadge) {
+    if (isWeekend) {
+      londonPill.className = 'market-ticker-pill closed';
+      londonBadge.innerText = 'Cerrado';
+    } else if (utcTimeDec >= 8.0 && utcTimeDec < 16.5) {
+      londonPill.className = 'market-ticker-pill open';
+      londonBadge.innerText = 'Abierto';
+    } else {
+      londonPill.className = 'market-ticker-pill closed';
+      londonBadge.innerText = 'Cerrado';
+    }
+  }
+
+  // 3. Tokio / Asia:
+  // 00:00 - 09:00 UTC (o Domingo tarde 22:00+ UTC apertura de Sydney/Asia)
+  const asiaPill = document.getElementById('ticker-asia');
+  const asiaBadge = document.getElementById('badge-asia');
+  if (asiaPill && asiaBadge) {
+    const isAsiaOpen = (!isWeekend && (utcTimeDec >= 0.0 && utcTimeDec < 9.0)) || 
+                       (utcDay === 0 && utcTimeDec >= 22.0);
+    if (isAsiaOpen) {
+      asiaPill.className = 'market-ticker-pill open';
+      asiaBadge.innerText = 'Abierto';
+    } else {
+      asiaPill.className = 'market-ticker-pill closed';
+      asiaBadge.innerText = 'Cerrado';
+    }
+  }
+}
+
+// 3. Píldora de Psicología & Mindset del Trader
+const TRADING_QUOTES = [
+  {
+    quote: "El mercado es un espejo que refleja tus más profundas emociones y creencias sobre el dinero. Cuando dejas de intentar tener la razón, comienzas a extraer dinero con disciplina.",
+    author: "— Mark Douglas, Trading in the Zone"
+  },
+  {
+    quote: "No puedes controlar lo que hará el mercado en los próximos 5 minutos. Tu único trabajo es controlar tu riesgo y ejecutar tu plan con total desapego al resultado de un trade individual.",
+    author: "— Jared Tendler, The Mental Game of Trading"
+  },
+  {
+    quote: "Los traders perdedores se enfocan en cuánto dinero pueden ganar. Los traders consistentes se obsesionan con cuánto pueden perder si el trade no funciona.",
+    author: "— Paul Tudor Jones"
+  },
+  {
+    quote: "El dolor de perder un trade ejecutado según tus reglas es momentáneo. El dolor de perder por romper tus reglas destruye tu confianza.",
+    author: "— Tom Hougaard, Best Loser Wins"
+  },
+  {
+    quote: "La consistencia no es una estrategia de trading; es un estado mental de paciencia implacable. Espera a tu presa como un francotirador.",
+    author: "— Brett Steenbarger, The Daily Trading Coach"
+  },
+  {
+    quote: "Cualquier trade individual tiene un resultado aleatorio. Es la ley de las probabilidades a lo largo de 50 trades bien ejecutados lo que te otorga consistencia.",
+    author: "— Mark Douglas"
+  },
+  {
+    quote: "Si no eres capaz de aceptar una pequeña pérdida con serenidad, tarde o temprano el mercado te obligará a aceptar una pérdida catastrófica.",
+    author: "— Ed Seykota, Market Wizards"
+  },
+  {
+    quote: "El autocontrol es la habilidad de no actuar cuando el mercado no ofrece una ventaja matemática clara. La paciencia también es una posición.",
+    author: "— Charlie Munger"
+  }
+];
+
+let currentQuoteIndex = 0;
+
+function initMindsetQuotes() {
+  currentQuoteIndex = Math.floor(Math.random() * TRADING_QUOTES.length);
+  displayMindsetQuote(currentQuoteIndex);
+}
+
+function displayMindsetQuote(index) {
+  const quoteText = document.getElementById('home-quote-text');
+  const quoteAuthor = document.getElementById('home-quote-author');
+  if (!quoteText || !quoteAuthor) return;
+
+  const item = TRADING_QUOTES[index];
+  quoteText.style.opacity = '0';
+  quoteAuthor.style.opacity = '0';
+
+  setTimeout(() => {
+    quoteText.innerText = `"${item.quote}"`;
+    quoteAuthor.innerText = item.author;
+    quoteText.style.transition = 'opacity 0.3s ease';
+    quoteAuthor.style.transition = 'opacity 0.3s ease';
+    quoteText.style.opacity = '1';
+    quoteAuthor.style.opacity = '1';
+  }, 150);
+}
+
+function cycleMindsetQuote() {
+  currentQuoteIndex = (currentQuoteIndex + 1) % TRADING_QUOTES.length;
+  displayMindsetQuote(currentQuoteIndex);
+}
+
+// 4. Quick Mood Check
+function selectQuickMood(mood, buttonEl) {
+  document.querySelectorAll('.state-btn').forEach(btn => btn.classList.remove('selected'));
+  if (buttonEl) buttonEl.classList.add('selected');
+
+  const feedbackBox = document.getElementById('mindset-feedback-message');
+  if (!feedbackBox) return;
+
+  feedbackBox.style.display = 'block';
+
+  if (mood === 'calm') {
+    feedbackBox.style.background = 'var(--profit-bg)';
+    feedbackBox.style.color = 'var(--profit)';
+    feedbackBox.style.border = '1px solid rgba(5, 150, 105, 0.2)';
+    feedbackBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> <strong>Estado Óptimo:</strong> Calma y paciencia detectadas. Deja que el precio venga a tus zonas clave y respeta tu R:R hoy.';
+  } else if (mood === 'cautious') {
+    feedbackBox.style.background = 'var(--warning-bg)';
+    feedbackBox.style.color = 'var(--warning)';
+    feedbackBox.style.border = '1px solid rgba(217, 119, 6, 0.2)';
+    feedbackBox.innerHTML = '<i class="fa-solid fa-shield-halved"></i> <strong>Modo Vigilante:</strong> Prudencia activa. Considera arriesgar la mitad del riesgo estándar por contrato y busca confirmación extra.';
+  } else if (mood === 'fatigued') {
+    feedbackBox.style.background = 'var(--loss-bg)';
+    feedbackBox.style.color = 'var(--loss)';
+    feedbackBox.style.border = '1px solid rgba(225, 29, 72, 0.2)';
+    feedbackBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Alerta de Enfoque:</strong> Fatiga o ansiedad presentes. Si operas hoy, hazlo en cuenta demo o apaga la pantalla tras tu primer trade.';
+  }
+}
+
+// 5. Menú Desplegable de Herramientas Rápidas en el Header
+function toggleHeaderToolsMenu(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById('header-tools-menu');
+  if (menu) {
+    menu.classList.toggle('active');
+  }
+}
+
+function closeHeaderToolsMenu() {
+  const menu = document.getElementById('header-tools-menu');
+  if (menu) {
+    menu.classList.remove('active');
+  }
+}
 
 
