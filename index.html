@@ -18,6 +18,9 @@
   
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Supabase Client JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -50,6 +53,23 @@
       </nav>
 
       <div class="header-actions">
+        <!-- Cloud Auth Widget -->
+        <div id="auth-status-container" class="auth-status-container">
+          <button type="button" id="btn-open-login" class="btn btn-primary btn-sm btn-glow" onclick="openAuthModal('login')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Iniciar Sesión
+          </button>
+          
+          <div id="user-logged-box" class="user-logged-box" style="display: none;">
+            <div class="user-badge" id="user-email-badge" title="Cuenta activa y sincronizada en Supabase Cloud">
+              <span class="cloud-dot"></span>
+              <span class="email-text" id="user-email-text">usuario@email.com</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="handleLogout()" title="Cerrar sesión">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+        </div>
+
         <button class="btn btn-primary btn-sm" onclick="openPaperTemplate()" title="Plantilla para Imprimir en Papel (Lápiz)">
           <i class="fa-solid fa-print"></i> Plantilla Papel
         </button>
@@ -1197,6 +1217,102 @@
 
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH MODAL: LOGIN & REGISTRO SUPABASE -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-content auth-modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="logo-icon" style="width: 34px; height: 34px; font-size: 1rem;">
+            <i class="fa-solid fa-cloud"></i>
+          </div>
+          <div>
+            <h3 class="card-title" style="margin: 0; font-size: 1.15rem;">Mi Cuenta en la Nube</h3>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Sincroniza tus trades entre dispositivos con cifrado seguro</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="tab-btn-login" onclick="switchAuthTab('login')">
+          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+        </button>
+        <button type="button" class="auth-tab-btn" id="tab-btn-register" onclick="switchAuthTab('register')">
+          <i class="fa-solid fa-user-plus"></i> Crear Cuenta
+        </button>
+      </div>
+
+      <!-- Alert Message Box -->
+      <div id="auth-alert" class="auth-alert" style="display: none;"></div>
+
+      <!-- Form 1: Iniciar Sesión -->
+      <form id="auth-form-login" onsubmit="handleLoginSubmit(event)" class="auth-form">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" for="login-email"><i class="fa-solid fa-envelope"></i> Correo Electrónico</label>
+          <input type="email" id="login-email" class="form-control" placeholder="tu@correo.com" required autocomplete="email">
+        </div>
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="login-password"><i class="fa-solid fa-lock"></i> Contraseña</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar a mi Diario
+        </button>
+        <p style="text-align: center; margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+          ¿No tienes cuenta? <a href="#" onclick="switchAuthTab('register'); return false;" style="color: var(--accent-primary); font-weight: 600;">Regístrate gratis aquí</a>
+        </p>
+      </form>
+
+      <!-- Form 2: Registro -->
+      <form id="auth-form-register" onsubmit="handleRegisterSubmit(event)" class="auth-form" style="display: none;">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" for="reg-email"><i class="fa-solid fa-envelope"></i> Correo Electrónico</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="tu@correo.com" required autocomplete="email">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" for="reg-password"><i class="fa-solid fa-lock"></i> Contraseña (mínimo 6 caracteres)</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+        </div>
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="reg-password-confirm"><i class="fa-solid fa-lock"></i> Confirmar Contraseña</label>
+          <input type="password" id="reg-password-confirm" class="form-control" placeholder="Repite tu contraseña" minlength="6" required autocomplete="new-password">
+        </div>
+        <button type="submit" id="reg-submit-btn" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-user-plus"></i> Crear mi Cuenta Gratis
+        </button>
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); display: flex; gap: 0.5rem;">
+          <i class="fa-solid fa-shield-halved" style="color: var(--profit); margin-top: 2px;"></i>
+          <span>Tus operaciones y notas psicológicas son 100% privadas. Cada trader solo tiene acceso a sus propios datos con Row Level Security (RLS).</span>
+        </div>
+        <p style="text-align: center; margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+          ¿Ya tienes cuenta? <a href="#" onclick="switchAuthTab('login'); return false;" style="color: var(--accent-primary); font-weight: 600;">Inicia sesión aquí</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MIGRAR DATOS LOCALES A LA NUBE -->
+  <div class="modal-backdrop" id="migrate-modal">
+    <div class="modal-content" style="max-width: 520px; text-align: center;">
+      <div style="width: 56px; height: 56px; background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1rem;">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+      </div>
+      <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">¿Sincronizar tus Sesiones a la Nube?</h3>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Detectamos que tienes <strong id="local-sessions-count">0</strong> sesiones guardadas localmente en este navegador. ¿Deseas subirlas a tu cuenta para tenerlas disponibles en todos tus dispositivos?
+      </p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button type="button" class="btn btn-primary" onclick="confirmCloudMigration()">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Sí, Sincronizar Todo
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="dismissMigrationModal()">
+          No por ahora
+        </button>
       </div>
     </div>
   </div>
