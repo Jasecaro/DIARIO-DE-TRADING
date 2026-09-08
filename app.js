@@ -1671,6 +1671,11 @@ function importBackupJSON(event) {
           renderHistory();
           if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
           showToast(`¡Se restauraron ${importedSessions.length} sesiones con éxito!`, 'success');
+
+          // Si está logueado en Supabase, subir también el respaldo importado a la nube
+          if (state.currentUser && supabaseClient && typeof syncSessionsArrayToCloud === 'function') {
+            syncSessionsArrayToCloud(importedSessions);
+          }
         }
       } else {
         showToast('El archivo JSON no tiene un formato válido de respaldo.', 'danger');
@@ -2209,6 +2214,44 @@ function showMigrationModal(count) {
 function dismissMigrationModal() {
   const modal = document.getElementById('migrate-modal');
   if (modal) modal.classList.remove('active');
+}
+
+async function syncSessionsArrayToCloud(sessionsArray) {
+  if (!supabaseClient || !state.currentUser || !Array.isArray(sessionsArray)) return;
+  const nonDemo = sessionsArray.filter(s => s.id && !String(s.id).startsWith('demo_'));
+  if (nonDemo.length === 0) return;
+
+  const rows = nonDemo.map(session => ({
+    id: session.id,
+    user_id: state.currentUser.id,
+    date: session.date,
+    time_slot: session.timeSlot,
+    account: session.account,
+    accounts_list: session.accountsList || [],
+    account_risks: session.accountRisks || {},
+    total_replicator_risk: session.totalReplicatorRisk || 0,
+    bias: session.bias,
+    pre_emotion: session.preEmotion,
+    energy_score: session.energyScore || 8,
+    checklist: session.checklist || {},
+    folio_maestro: session.folioMaestro || {},
+    trades: session.trades || [],
+    adherence: session.adherence,
+    discipline_score: session.disciplineScore || 10,
+    mistakes: session.mistakes || '',
+    takeaway: session.takeaway || '',
+    net_pnl: session.netPnl || 0,
+    updated_at: new Date().toISOString()
+  }));
+
+  try {
+    const { error } = await supabaseClient.from('trading_sessions').upsert(rows);
+    if (!error) {
+      showToast(`¡${rows.length} sesiones sincronizadas en la nube!`, 'success');
+    }
+  } catch (err) {
+    console.error('Error in syncSessionsArrayToCloud:', err);
+  }
 }
 
 async function confirmCloudMigration() {
