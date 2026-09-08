@@ -1131,17 +1131,17 @@ function generateNotebookLMReport() {
   }
 }
 
-// Clean Personal HTML Generators (Without AI Prompts)
+// Clean Personal HTML Generators (Without AI Prompts - Always Light Paper Theme)
 function buildDailyPersonalHTML(s) {
   const isProfit = s.netPnl >= 0;
 
   const pnlClass = isProfit ? 'badge-profit' : 'badge-loss';
 
   let html = `
-    <div class="personal-report-header">
+    <div class="personal-report-header" style="border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div>
-        <h2 class="personal-report-title">Informe Diario de Trading</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">${s.date} &bull; ${s.timeSlot} &bull; ${s.account}</p>
+        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">Informe Diario de Trading</h2>
+        <p style="color: #64748b !important; font-size: 0.9rem;">${s.date} &bull; ${s.timeSlot} &bull; ${s.account}</p>
       </div>
       <div>
         <span class="badge ${pnlClass}" style="font-size: 1.25rem; padding: 0.5rem 1rem;">
@@ -1152,21 +1152,21 @@ function buildDailyPersonalHTML(s) {
 
     <!-- Stats Row -->
     <div class="metrics-grid" style="margin-bottom: 1.5rem;">
-      <div class="metric-card purple-theme">
-        <div class="metric-label">Disciplina</div>
-        <div class="metric-value">${s.disciplineScore}/10</div>
-        <div class="metric-subtext">${s.adherence}</div>
+      <div class="metric-card purple-theme" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important;">
+        <div class="metric-label" style="color: #64748b !important;">Disciplina</div>
+        <div class="metric-value" style="color: #0f172a !important;">${s.disciplineScore}/10</div>
+        <div class="metric-subtext" style="color: #64748b !important;">${s.adherence}</div>
       </div>
-      <div class="metric-card ${isProfit ? 'profit-theme' : 'loss-theme'}">
-        <div class="metric-label">Estado Mental</div>
-        <div class="metric-value" style="font-size: 1.2rem;">${s.preEmotion}</div>
-        <div class="metric-subtext">Energía: ${s.energyScore}/10 | Sesgo: ${s.bias}</div>
+      <div class="metric-card ${isProfit ? 'profit-theme' : 'loss-theme'}" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important;">
+        <div class="metric-label" style="color: #64748b !important;">Estado Mental</div>
+        <div class="metric-value" style="font-size: 1.2rem; color: #0f172a !important;">${s.preEmotion}</div>
+        <div class="metric-subtext" style="color: #64748b !important;">Energía: ${s.energyScore}/10 | Sesgo: ${s.bias}</div>
       </div>
     </div>
 
     ${s.accountRisks && Object.keys(s.accountRisks).length > 0 ? `
-      <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 1.2rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
-        <h4 style="color: var(--loss); font-size: 0.92rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem;">
+      <div style="background: #ffffff; border: 1px solid #fecdd3; padding: 1.2rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+        <h4 style="color: #e11d48 !important; font-size: 0.92rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem;">
           <i class="fa-solid fa-shield-halved"></i> Límites de Riesgo Monetario por Cuenta de Fondeo (Definidos Hoy):
         </h4>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
@@ -1180,41 +1180,41 @@ function buildDailyPersonalHTML(s) {
     ` : ''}
 
     ${s.folioMaestro && (s.folioMaestro.noDo?.length || s.folioMaestro.improve || s.folioMaestro.ifThen?.length) ? `
-      <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.04), rgba(79, 70, 229, 0.02)); border: 1.5px solid rgba(124, 58, 237, 0.25); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
-        <h4 style="color: #7c3aed; font-size: 1rem; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+      <div style="background: #faf5ff; border: 1.5px solid #d8b4fe; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+        <h4 style="color: #7c3aed !important; font-size: 1rem; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
           <i class="fa-solid fa-brain"></i> Folio Maestro: Medicina Preventiva Psicológica (Definida Pre-Sesión)
         </h4>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; font-size: 0.88rem;">
           ${s.folioMaestro.noDo && s.folioMaestro.noDo.length > 0 ? `
-            <div style="background: var(--bg-card); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <strong style="color: var(--loss); font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
+            <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid #e9d5ff;">
+              <strong style="color: #e11d48 !important; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
                 <i class="fa-solid fa-ban"></i> 1. Hoy NO Haré:
               </strong>
-              <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-main); line-height: 1.5;">
+              <ul style="margin: 0; padding-left: 1.2rem; color: #1e293b !important; line-height: 1.5;">
                 ${s.folioMaestro.noDo.map(item => `<li>${item}</li>`).join('')}
               </ul>
             </div>
           ` : ''}
 
           ${s.folioMaestro.improve ? `
-            <div style="background: var(--bg-card); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <strong style="color: var(--profit); font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
+            <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid #e9d5ff;">
+              <strong style="color: #059669 !important; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
                 <i class="fa-solid fa-crosshair"></i> 2. Hoy Mejoraré en:
               </strong>
-              <p style="margin: 0; color: var(--text-main); font-weight: 600; line-height: 1.5;">${s.folioMaestro.improve}</p>
+              <p style="margin: 0; color: #1e293b !important; font-weight: 600; line-height: 1.5;">${s.folioMaestro.improve}</p>
             </div>
           ` : ''}
 
           ${s.folioMaestro.ifThen && s.folioMaestro.ifThen.length > 0 ? `
-            <div style="grid-column: 1 / -1; background: var(--bg-card); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <strong style="color: var(--accent-primary); font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.5rem;">
+            <div style="grid-column: 1 / -1; background: #ffffff; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid #e9d5ff;">
+              <strong style="color: #4f46e5 !important; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.5rem;">
                 <i class="fa-solid fa-code-branch"></i> 3. Protocolos Si-Entonces (Comandos de Emergencia):
               </strong>
               <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                 ${s.folioMaestro.ifThen.map(p => `
-                  <div style="background: var(--bg-main); padding: 0.45rem 0.85rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.84rem;">
-                    <span style="color: var(--accent-primary); font-weight: 700;">Si siento:</span> ${p.feel} <strong style="color: var(--accent-primary); margin: 0 4px;">➔ Haré:</strong> <span style="color: var(--profit); font-weight: 700;">${p.do}</span>
+                  <div style="background: #f8fafc; padding: 0.45rem 0.85rem; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.84rem; color: #1e293b !important;">
+                    <span style="color: #4f46e5 !important; font-weight: 700;">Si siento:</span> ${p.feel} <strong style="color: #4f46e5 !important; margin: 0 4px;">➔ Haré:</strong> <span style="color: #059669 !important; font-weight: 700;">${p.do}</span>
                   </div>
                 `).join('')}
               </div>
@@ -1225,42 +1225,42 @@ function buildDailyPersonalHTML(s) {
     ` : ''}
 
     <!-- Trades Table -->
-    <h3 style="font-family: var(--font-heading); color: var(--text-main); margin-bottom: 0.75rem;">Operaciones Registradas</h3>
+    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 0.75rem;">Operaciones Registradas</h3>
 
   `;
 
   if (s.trades && s.trades.length > 0) {
     html += `
       <div class="table-responsive" style="margin-bottom: 1.5rem;">
-        <table class="custom-table">
+        <table class="custom-table" style="background: #ffffff !important; border-collapse: collapse !important;">
           <thead>
-            <tr>
-              <th class="col-center col-col1">#</th>
-              <th class="col-left col-col2">Activo</th>
-              <th class="col-center col-col3">Dirección</th>
-              <th class="col-center col-col4">Lotes</th>
-              <th class="col-left col-col5">Estrategia</th>
-              <th class="col-right col-col6">P&L ($)</th>
-              <th class="col-center col-col7">R:R</th>
-              <th class="col-center col-col8">Gráfico</th>
-              <th class="col-left col-col9">Etiquetas / Notas</th>
+            <tr style="background: #f8fafc !important;">
+              <th class="col-center col-col1" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">#</th>
+              <th class="col-left col-col2" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Activo</th>
+              <th class="col-center col-col3" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Dirección</th>
+              <th class="col-center col-col4" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Lotes</th>
+              <th class="col-left col-col5" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Estrategia</th>
+              <th class="col-right col-col6" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">P&L ($)</th>
+              <th class="col-center col-col7" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">R:R</th>
+              <th class="col-center col-col8" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Gráfico</th>
+              <th class="col-left col-col9" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Etiquetas / Notas</th>
             </tr>
           </thead>
           <tbody>
             ${s.trades.map((t, idx) => `
-              <tr>
-                <td class="col-center col-col1"><strong>${idx + 1}</strong></td>
-                <td class="col-left col-col2"><strong>${t.asset}</strong></td>
+              <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
+                <td class="col-center col-col1" style="color: #0f172a !important;"><strong>${idx + 1}</strong></td>
+                <td class="col-left col-col2" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
                 <td class="col-center col-col3"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
-                <td class="col-center col-col4">${t.lots}</td>
-                <td class="col-left col-col5">${t.setup}</td>
+                <td class="col-center col-col4" style="color: #0f172a !important;">${t.lots}</td>
+                <td class="col-left col-col5" style="color: #0f172a !important;">${t.setup}</td>
                 <td class="col-right col-col6"><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
-                <td class="col-center col-col7">1:${t.rr}</td>
+                <td class="col-center col-col7" style="color: #0f172a !important;">1:${t.rr}</td>
                 <td class="col-center col-col8">
-                  ${t.chartImage || t.chartUrl ? `<span style="color: #34d399; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
+                  ${t.chartImage || t.chartUrl ? `<span style="color: #059669; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
                 </td>
 
-                <td class="col-left col-col9" style="line-height: 1.4;">${t.tags || '-'} ${t.notes ? `<br><small style="color: var(--text-muted);">${t.notes}</small>` : ''}</td>
+                <td class="col-left col-col9" style="line-height: 1.4; color: #1e293b !important;">${t.tags || '-'} ${t.notes ? `<br><small style="color: #64748b !important;">${t.notes}</small>` : ''}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1268,15 +1268,15 @@ function buildDailyPersonalHTML(s) {
       </div>
     `;
   } else {
-    html += `<p style="color: var(--text-muted); margin-bottom: 1.5rem;">No se realizaron operaciones en esta sesión.</p>`;
+    html += `<p style="color: #64748b !important; margin-bottom: 1.5rem;">No se realizaron operaciones en esta sesión.</p>`;
   }
 
   html += `
     <!-- Retrospective -->
-    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
-      <h4 style="color: var(--accent-primary); margin-bottom: 0.5rem;"><i class="fa-solid fa-lightbulb"></i> Lección Principal del Día</h4>
-      <p style="font-size: 0.95rem; color: var(--text-main);">${s.takeaway || 'Sin comentarios registrados.'}</p>
-      ${s.mistakes ? `<p style="font-size: 0.85rem; color: var(--loss); margin-top: 0.5rem;"><strong>Errores anotados:</strong> ${s.mistakes}</p>` : ''}
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 1.25rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+      <h4 style="color: #4f46e5 !important; margin-bottom: 0.5rem;"><i class="fa-solid fa-lightbulb"></i> Lección Principal del Día</h4>
+      <p style="font-size: 0.95rem; color: #1e293b !important;">${s.takeaway || 'Sin comentarios registrados.'}</p>
+      ${s.mistakes ? `<p style="font-size: 0.85rem; color: #e11d48 !important; margin-top: 0.5rem;"><strong>Errores anotados:</strong> ${s.mistakes}</p>` : ''}
     </div>
   `;
 
@@ -1284,25 +1284,25 @@ function buildDailyPersonalHTML(s) {
   const tradesWithImages = s.trades ? s.trades.filter(t => t.chartImage || t.chartUrl) : [];
   if (tradesWithImages.length > 0) {
     html += `
-      <div class="print-page-break" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed var(--border-color);">
-        <h3 style="font-family: var(--font-heading); color: var(--accent-primary); margin-bottom: 0.5rem; font-size: 1.3rem;">
+      <div class="print-page-break" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed #cbd5e1;">
+        <h3 style="font-family: var(--font-heading); color: #4f46e5 !important; margin-bottom: 0.5rem; font-size: 1.3rem;">
           <i class="fa-solid fa-images"></i> ANEXO: CAPTURAS DE PANTALLA Y ANÁLISIS DE GRÁFICOS
         </h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        <p style="font-size: 0.85rem; color: #64748b !important; margin-bottom: 1rem;">
           A continuación se presentan en tamaño completo los pantallazos asociados a las operaciones de la sesión:
         </p>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${tradesWithImages.map(t => `
-            <div class="annex-card">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
-                <span style="font-family: var(--font-heading); font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+            <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+                <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
                   📷 Anexo #${s.trades.indexOf(t) + 1}: ${t.asset} (${t.direction}) &mdash; Setup: ${t.setup}
                 </span>
                 <span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">
                   ${t.pnl >= 0 ? '+$' : '-$'}${Math.abs(t.pnl).toFixed(2)} USD (R:R 1:${t.rr})
                 </span>
               </div>
-              ${t.notes ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;"><strong>Notas / Bitácora:</strong> ${t.notes}</p>` : ''}
+              ${t.notes ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Notas / Bitácora:</strong> ${t.notes}</p>` : ''}
               <div style="text-align: center; margin-top: 0.75rem;">
                 <img src="${t.chartImage || t.chartUrl}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver fullscreen">
               </div>
@@ -1324,7 +1324,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
   if (rangeType === 'all') { daysLimit = 9999; title = 'Histórico Completo'; }
 
   const relevant = state.sessions.slice(0, daysLimit);
-  if (relevant.length === 0) return '<p class="empty-state">No hay datos suficientes.</p>';
+  if (relevant.length === 0) return '<p class="empty-state" style="color: #64748b !important;">No hay datos suficientes.</p>';
 
   let totalPnl = 0;
   let wins = 0;
@@ -1349,10 +1349,10 @@ function buildConsolidatedPersonalHTML(rangeType) {
   const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'INF' : '0.00');
 
   let html = `
-    <div class="personal-report-header">
+    <div class="personal-report-header" style="border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div>
-        <h2 class="personal-report-title">Informe Ejecutivo ${title}</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Consolidado de ${relevant.length} sesiones de trading</p>
+        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">Informe Ejecutivo ${title}</h2>
+        <p style="color: #64748b !important; font-size: 0.9rem;">Consolidado de ${relevant.length} sesiones de trading</p>
       </div>
       <div>
         <span class="badge ${totalPnl >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 1.25rem; padding: 0.5rem 1rem;">
@@ -1363,64 +1363,64 @@ function buildConsolidatedPersonalHTML(rangeType) {
 
     <!-- High level metrics -->
     <div class="metrics-grid" style="margin-bottom: 2rem;">
-      <div class="metric-card purple-theme">
-        <div class="metric-label">Win Rate</div>
-        <div class="metric-value">${winRate}%</div>
-        <div class="metric-subtext">${wins} Ganadas / ${losses} Perdidas</div>
+      <div class="metric-card purple-theme" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important;">
+        <div class="metric-label" style="color: #64748b !important;">Win Rate</div>
+        <div class="metric-value" style="color: #0f172a !important;">${winRate}%</div>
+        <div class="metric-subtext" style="color: #64748b !important;">${wins} Ganadas / ${losses} Perdidas</div>
       </div>
-      <div class="metric-card profit-theme">
-        <div class="metric-label">Profit Factor</div>
-        <div class="metric-value">${profitFactor}</div>
-        <div class="metric-subtext">Beneficio vs Pérdida</div>
+      <div class="metric-card profit-theme" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important;">
+        <div class="metric-label" style="color: #64748b !important;">Profit Factor</div>
+        <div class="metric-value" style="color: #0f172a !important;">${profitFactor}</div>
+        <div class="metric-subtext" style="color: #64748b !important;">Beneficio vs Pérdida</div>
       </div>
-      <div class="metric-card warning-theme">
-        <div class="metric-label">Total Trades</div>
-        <div class="metric-value">${totalTrades}</div>
-        <div class="metric-subtext">Operaciones Ejecutadas</div>
+      <div class="metric-card warning-theme" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important;">
+        <div class="metric-label" style="color: #64748b !important;">Total Trades</div>
+        <div class="metric-value" style="color: #0f172a !important;">${totalTrades}</div>
+        <div class="metric-subtext" style="color: #64748b !important;">Operaciones Ejecutadas</div>
       </div>
     </div>
 
-    <h3 style="font-family: var(--font-heading); color: var(--text-main); margin-bottom: 1rem;">Sesiones del Período</h3>
+    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 1rem;">Sesiones del Período</h3>
   `;
 
   relevant.forEach((s, idx) => {
     const isWin = s.netPnl >= 0;
     html += `
-      <div class="personal-session-block">
-        <div class="personal-session-title">
-          <span><strong>Día ${idx + 1}: ${s.date}</strong> (${s.account})</span>
+      <div class="personal-session-block" style="background: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #0f172a !important;">
+        <div class="personal-session-title" style="color: #0f172a !important;">
+          <span style="color: #0f172a !important;"><strong>Día ${idx + 1}: ${s.date}</strong> (${s.account})</span>
           <span class="badge ${isWin ? 'badge-profit' : 'badge-loss'}">${isWin ? '+$' : '-$'}${Math.abs(s.netPnl).toFixed(2)}</span>
         </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        <p style="font-size: 0.85rem; color: #64748b !important; margin-bottom: 0.5rem;">
           <strong>Estado Pre-Mercado:</strong> ${s.preEmotion} | <strong>Disciplina:</strong> ${s.disciplineScore}/10
         </p>
-        <p style="font-size: 0.9rem; color: var(--text-main); background: #f1f5f9; border: 1px solid #e2e8f0; padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 0.75rem;">
+        <p style="font-size: 0.9rem; color: #1e293b !important; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 0.75rem;">
           💡 <em>"${s.takeaway || 'Sin comentarios.'}"</em>
         </p>
 
         ${s.trades && s.trades.length > 0 ? `
-          <table class="custom-table" style="font-size: 0.8rem;">
+          <table class="custom-table" style="font-size: 0.8rem; background: #ffffff !important; border-collapse: collapse !important;">
             <thead>
-              <tr>
-                <th class="col-left">Activo</th>
-                <th class="col-center">Dirección</th>
-                <th class="col-left">Estrategia</th>
-                <th class="col-right">P&L ($)</th>
-                <th class="col-center">R:R</th>
-                <th class="col-center">Captura</th>
-                <th class="col-left">Notas</th>
+              <tr style="background: #f8fafc !important;">
+                <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Activo</th>
+                <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Dirección</th>
+                <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Estrategia</th>
+                <th class="col-right" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">P&L ($)</th>
+                <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">R:R</th>
+                <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Captura</th>
+                <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Notas</th>
               </tr>
             </thead>
             <tbody>
               ${s.trades.map((t, tIdx) => `
-                <tr>
-                  <td class="col-left"><strong>${t.asset}</strong></td>
+                <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
+                  <td class="col-left" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
                   <td class="col-center"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
-                  <td class="col-left">${t.setup}</td>
+                  <td class="col-left" style="color: #0f172a !important;">${t.setup}</td>
                   <td class="col-right"><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
-                  <td class="col-center">1:${t.rr}</td>
+                  <td class="col-center" style="color: #0f172a !important;">1:${t.rr}</td>
                   <td class="col-center">${t.chartImage || t.chartUrl ? `<span class="badge badge-profit" onclick="openLightbox('${t.chartImage || t.chartUrl}')" style="cursor: pointer; font-size: 0.7rem;"><i class="fa-solid fa-camera"></i> Anexo</span>` : '-'}</td>
-                  <td class="col-left">${t.tags || '-'}</td>
+                  <td class="col-left" style="color: #1e293b !important;">${t.tags || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1433,25 +1433,25 @@ function buildConsolidatedPersonalHTML(rangeType) {
   // Consolidated Chart Annex
   if (allAnnexTrades.length > 0) {
     html += `
-      <div class="print-page-break" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed var(--border-color);">
-        <h3 style="font-family: var(--font-heading); color: var(--accent-primary); margin-bottom: 0.5rem; font-size: 1.3rem;">
+      <div class="print-page-break" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed #cbd5e1;">
+        <h3 style="font-family: var(--font-heading); color: #4f46e5 !important; margin-bottom: 0.5rem; font-size: 1.3rem;">
           <i class="fa-solid fa-images"></i> ANEXO CONSOLIDADO DE CAPTURAS Y ANÁLISIS GRÁFICO
         </h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        <p style="font-size: 0.85rem; color: #64748b !important; margin-bottom: 1rem;">
           Galería completa de capturas de pantalla registradas en las sesiones del período (${allAnnexTrades.length} imágenes):
         </p>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${allAnnexTrades.map((item, idx) => `
-            <div class="annex-card">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
-                <span style="font-family: var(--font-heading); font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+            <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+                <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
                   📷 Anexo #${idx + 1}: ${item.sessionDate} (${item.account}) &mdash; ${item.trade.asset} (${item.trade.direction})
                 </span>
                 <span class="badge ${item.trade.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">
                   ${item.trade.pnl >= 0 ? '+$' : '-$'}${Math.abs(item.trade.pnl).toFixed(2)} USD (Setup: ${item.trade.setup})
                 </span>
               </div>
-              ${item.trade.notes ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;"><strong>Notas:</strong> ${item.trade.notes}</p>` : ''}
+              ${item.trade.notes ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Notas:</strong> ${item.trade.notes}</p>` : ''}
               <div style="text-align: center; margin-top: 0.75rem;">
                 <img src="${item.trade.chartImage || item.trade.chartUrl}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver fullscreen">
               </div>
