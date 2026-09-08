@@ -61,7 +61,299 @@
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Reset & Base Styles */
+/* ==========================================================================
+   THEME: DARK MODE (TRADING TERMINAL PRO)
+   ========================================================================== */
+[data-theme="dark"] {
+  /* Color Palette - Modern Dark Theme (TradingView / Terminal Style) */
+  --bg-main: #0b0f19;
+  --bg-card: #111827;
+  --bg-card-hover: #1f293d;
+  --bg-card-solid: #111827;
+  --bg-input: #172033;
+  
+  --border-color: #1f293d;
+  --border-glow: rgba(99, 102, 241, 0.25);
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+
+  --accent-primary: #6366f1;
+  --accent-primary-hover: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.25);
+
+  --profit: #10b981;
+  --profit-glow: rgba(16, 185, 129, 0.25);
+  --profit-bg: rgba(16, 185, 129, 0.12);
+
+  --loss: #f43f5e;
+  --loss-glow: rgba(244, 63, 94, 0.25);
+  --loss-bg: rgba(244, 63, 94, 0.12);
+
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.12);
+
+  --cyan: #06b6d4;
+  --purple: #a855f7;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="dark"] body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(168, 85, 247, 0.04) 0px, transparent 50%);
+  color: var(--text-main);
+}
+
+[data-theme="dark"] header {
+  background: rgba(11, 15, 25, 0.9);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] nav {
+  background: #172033;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .nav-btn {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .nav-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .nav-btn.active {
+  color: #ffffff;
+  background: var(--accent-primary);
+}
+
+[data-theme="dark"] .header-dropdown-menu {
+  background: #172033;
+  border-color: #334155;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .dropdown-item {
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .dropdown-divider {
+  background: #334155;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #172033;
+  color: var(--text-main);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .market-sessions-bar {
+  background: #111827;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .market-ticker-pill {
+  background: #172033;
+  border-color: #1f293d;
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .market-ticker-pill.closed .ticker-badge {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .market-local-clock {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .home-mindset-pill {
+  background: #111827;
+  border-color: rgba(99, 102, 241, 0.3);
+  background-image: radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 60%);
+}
+
+[data-theme="dark"] .mindset-quote {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .btn-refresh-mindset {
+  background: #172033;
+  border-color: #334155;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .btn-refresh-mindset:hover {
+  background: #1e293b;
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .state-btn {
+  background: #172033;
+  border-color: #334155;
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .state-btn:hover {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .gateway-card {
+  background: #111827;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .gateway-mini-stats {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .home-cloud-status-box {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .tool-card {
+  background: #111827;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .tool-card:hover {
+  background: #151e33;
+  border-color: var(--accent-primary);
+}
+
+[data-theme="dark"] .home-manifesto-section {
+  background: #111827;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .manifesto-step {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .phase-stepper {
+  background: #111827;
+}
+
+[data-theme="dark"] .step-btn {
+  background: #172033;
+  border-color: #334155;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .chip {
+  background: #172033;
+  border-color: #334155;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .chip:hover {
+  background: #1e293b;
+  color: var(--text-main);
+}
+
+[data-theme="dark"] .chip.selected {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-primary);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .radio-card {
+  background: #172033;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .radio-card.selected {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--accent-primary);
+}
+
+[data-theme="dark"] .table-container {
+  background: #111827;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] table th {
+  background: #172033;
+  color: var(--text-muted);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] table td {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] table tr:hover td {
+  background: #172033;
+}
+
+[data-theme="dark"] .modal-content {
+  background: #111827;
+  border-color: #334155;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .auth-tabs {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .auth-tab-btn.active {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .report-preview-box {
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #f1f5f9;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  transform: rotate(15deg);
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  color: #f59e0b;
+}
 * {
   box-sizing: border-box;
   margin: 0;

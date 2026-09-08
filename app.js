@@ -23,9 +23,14 @@ let state = {
 };
 
 const LOCAL_STORAGE_KEY = 'TRADING_JOURNAL_PRO_DATA_V1';
+const THEME_STORAGE_KEY = 'TRADING_JOURNAL_THEME_V1';
+
+// Ejecutar lo antes posible para evitar parpadeo de pantalla blanca
+initTheme();
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   loadFromLocalStorage();
   initializeDefaults();
   renderDashboard();
@@ -783,6 +788,13 @@ function renderEquityChart(sessions) {
     state.equityChart.destroy();
   }
 
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0';
+  const tickColor = isDark ? '#94a3b8' : '#64748b';
+  const tooltipBg = isDark ? '#1e293b' : '#ffffff';
+  const tooltipTitle = isDark ? '#f8fafc' : '#0f172a';
+  const tooltipBorder = isDark ? '#334155' : '#e2e8f0';
+
   // Reverse to get chronological order for equity curve
   const chronoSessions = [...sessions].reverse();
   
@@ -797,7 +809,7 @@ function renderEquityChart(sessions) {
   });
 
   const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+  gradient.addColorStop(0, isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.35)');
   gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
   state.equityChart = new Chart(ctx, {
@@ -825,23 +837,23 @@ function renderEquityChart(sessions) {
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: '#ffffff',
-          titleColor: '#0f172a',
-          bodyColor: '#059669',
-          borderColor: '#e2e8f0',
+          backgroundColor: tooltipBg,
+          titleColor: tooltipTitle,
+          bodyColor: '#10b981',
+          borderColor: tooltipBorder,
           borderWidth: 1,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
         }
       },
       scales: {
         x: {
-          grid: { color: '#e2e8f0' },
-          ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } }
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { family: 'Inter', size: 11 } }
         },
         y: {
-          grid: { color: '#e2e8f0' },
+          grid: { color: gridColor },
           ticks: {
-            color: '#64748b',
+            color: tickColor,
             font: { family: 'Inter', size: 11 },
             callback: value => '$' + value
           }
@@ -858,6 +870,10 @@ function renderErrorsChart(mistakesMap) {
   if (state.errorsChart) {
     state.errorsChart.destroy();
   }
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const legendColor = isDark ? '#94a3b8' : '#475569';
+  const doughnutBorder = isDark ? '#111827' : '#ffffff';
 
   const labels = Object.keys(mistakesMap);
   const data = Object.values(mistakesMap);
@@ -886,7 +902,7 @@ function renderErrorsChart(mistakesMap) {
           '#4f46e5'
         ],
         borderWidth: 2,
-        borderColor: '#ffffff'
+        borderColor: doughnutBorder
       }]
     },
     options: {
@@ -895,7 +911,7 @@ function renderErrorsChart(mistakesMap) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { color: '#475569', font: { family: 'Inter', size: 11 }, boxWidth: 12 }
+          labels: { color: legendColor, font: { family: 'Inter', size: 11 }, boxWidth: 12 }
         }
       }
     }
@@ -2590,6 +2606,70 @@ function closeHeaderToolsMenu() {
   const menu = document.getElementById('header-tools-menu');
   if (menu) {
     menu.classList.remove('active');
+  }
+}
+
+/* ==========================================================================
+   THEME SWITCHER (MODO OSCURO / CLARO PRO)
+   ========================================================================== */
+
+function initTheme() {
+  try {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === 'dark') {
+      applyTheme('dark');
+    } else if (savedTheme === 'light') {
+      applyTheme('light');
+    } else {
+      // Si el usuario tiene modo oscuro en su sistema operativo, respetarlo
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(prefersDark ? 'dark' : 'light');
+    }
+  } catch (e) {
+    console.warn('Error reading theme from localStorage', e);
+  }
+}
+
+function applyTheme(theme) {
+  const icon = document.getElementById('theme-icon');
+  const toggleBtn = document.getElementById('theme-toggle-btn');
+  
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    if (icon) {
+      icon.className = 'fa-solid fa-sun';
+    }
+    if (toggleBtn) {
+      toggleBtn.title = 'Cambiar a Modo Claro';
+    }
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    if (icon) {
+      icon.className = 'fa-solid fa-moon';
+    }
+    if (toggleBtn) {
+      toggleBtn.title = 'Cambiar a Modo Oscuro';
+    }
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  applyTheme(newTheme);
+  
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+  } catch (e) {
+    console.warn('Error saving theme to localStorage', e);
+  }
+
+  showToast(`Modo ${newTheme === 'dark' ? 'Oscuro Terminal' : 'Claro Ejecutivo'} activado`, 'info');
+
+  // Actualizar gráficos si están en pantalla
+  if (state.sessions && state.sessions.length > 0) {
+    renderEquityChart(state.sessions);
+    renderErrorsChart(calculateErrorsMap(state.sessions));
   }
 }
 
