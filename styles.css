@@ -1748,6 +1748,67 @@ input[type="range"] {
   box-shadow: var(--shadow-md);
 }
 
+/* Export Mode Switcher (Interactive Toolbar) */
+.export-mode-switcher {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card-hover);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+  transition: var(--transition);
+}
+
+.export-mode-title {
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-mode-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-secondary.active {
+  background: var(--accent-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+[data-theme="dark"] .export-mode-switcher {
+  background: #172033;
+  border-color: #1f293d;
+}
+
+[data-theme="dark"] .notebooklm-banner {
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.15), rgba(124, 58, 237, 0.15));
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="dark"] .notebooklm-info h3 {
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] #banner-personal {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15)) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-theme="dark"] #banner-personal h3 {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] #banner-personal p {
+  color: #94a3b8 !important;
+}
+
 .notebooklm-banner {
   background: linear-gradient(90deg, #eef2ff, #f5f3ff);
   border: 1px solid #c7d2fe;
@@ -2159,7 +2220,7 @@ input[type="range"] {
 
   /* Universal Hide: App navigation, buttons, controls, toasts */
   header, nav, .header-actions, .phase-stepper, 
-  #mode-btn-notebooklm, #mode-btn-personal, 
+  .export-mode-switcher, #mode-btn-notebooklm, #mode-btn-personal, 
   .notebooklm-banner, .form-grid, 
   #actions-notebooklm, #actions-personal, 
   .toast-container, .btn, button, .no-print,
@@ -2833,20 +2894,28 @@ input[type="range"] {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f1f5f9;
+  background: var(--bg-card-hover);
   border: 1px solid var(--border-color);
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-main);
   font-weight: 600;
-  max-width: 200px;
+  max-width: 240px;
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .user-badge {
+  background: #172033;
+  border-color: #334155;
+  color: #f8fafc;
 }
 
 .user-badge .email-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: inherit;
 }
 
 .cloud-dot {
@@ -2872,11 +2941,15 @@ input[type="range"] {
 
 .auth-tabs {
   display: flex;
-  background: #f1f5f9;
+  background: var(--bg-card-hover);
   padding: 4px;
   border-radius: var(--radius-sm);
   margin-bottom: 1.25rem;
   gap: 4px;
+}
+
+[data-theme="dark"] .auth-tabs {
+  background: #172033;
 }
 
 .auth-tab-btn {
@@ -2898,9 +2971,14 @@ input[type="range"] {
 }
 
 .auth-tab-btn.active {
-  background: #ffffff;
+  background: var(--bg-card);
   color: var(--accent-primary);
   box-shadow: var(--shadow-sm);
+}
+
+[data-theme="dark"] .auth-tab-btn.active {
+  background: #1e293b;
+  color: #a5b4fc;
 }
 
 .auth-tab-btn:hover:not(.active) {
