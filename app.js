@@ -2735,11 +2735,11 @@ function updateApiKeyStatusUI(key) {
   const dot = statusEl.querySelector('.status-dot');
   if (key && key.trim().length > 15) {
     if (dot) dot.className = 'status-dot active';
-    statusText.textContent = '🟢 Conectado con Gemini API';
+    statusText.textContent = '🟢 Conectado con Google Gemini API (Modo IA)';
     statusText.style.color = 'var(--profit)';
   } else {
     if (dot) dot.className = 'status-dot';
-    statusText.textContent = '⚪ Sin clave (usar Prompt Maestro o ingresar clave)';
+    statusText.textContent = '⚡ Modo Local Activo (Genera sin clave en 1 clic)';
     statusText.style.color = 'var(--text-muted)';
   }
 }
@@ -2770,7 +2770,7 @@ function saveGeminiKeyAction() {
   } else {
     localStorage.removeItem(GEMINI_KEY_STORAGE);
     updateApiKeyStatusUI('');
-    showToast('Clave API eliminada', 'info');
+    showToast('Clave API eliminada. Activado Modo Local sin clave.', 'info');
   }
 }
 
@@ -2875,7 +2875,116 @@ Estructura obligatoria del documento:
 - "¿Cuál de mis sesiones tuvo la mayor desviación entre mi plan escrito y las operaciones ejecutadas?"`;
 }
 
-// Llamada a la API de Google Gemini
+// Generador Heurístico Local Inteligente (100% Offline y Gratis sin API Key)
+function generateLocalPlaybook(rawText, style) {
+  const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  const buckets = {
+    assets: [],
+    sessions: [],
+    news: [],
+    bias: [],
+    setups: [],
+    riskSl: [],
+    exits: [],
+    psychology: []
+  };
+
+  const uncategorized = [];
+
+  lines.forEach(line => {
+    const clean = line.replace(/^[-*•0-9.)\s]+/, '').trim();
+    if (!clean) return;
+    const lower = clean.toLowerCase();
+
+    if (lower.includes('activo') || lower.includes('par') || lower.includes('nq') || lower.includes('es') || lower.includes('eurusd') || lower.includes('gbpusd') || lower.includes('oro') || lower.includes('gold') || lower.includes('crypto') || lower.includes('btc') || lower.includes('nasdaq')) {
+      buckets.assets.push(clean);
+    } else if (lower.includes('sesion') || lower.includes('sesión') || lower.includes('hora') || lower.includes('horario') || lower.includes('london') || lower.includes('ny') || lower.includes('new york') || lower.includes('asia') || lower.includes('apertura') || lower.includes('campana')) {
+      buckets.sessions.push(clean);
+    } else if (lower.includes('noticia') || lower.includes('cpi') || lower.includes('nfp') || lower.includes('fomc') || lower.includes('fed') || lower.includes('macro') || lower.includes('calendario') || lower.includes('impacto')) {
+      buckets.news.push(clean);
+    } else if (lower.includes('bias') || lower.includes('sesgo') || lower.includes('tendencia') || lower.includes('direcc') || lower.includes('4h') || lower.includes('1h') || lower.includes('diario') || lower.includes('daily')) {
+      buckets.bias.push(clean);
+    } else if (lower.includes('stop') || lower.includes('sl') || lower.includes('invalida') || lower.includes('riesgo') || lower.includes('pérdida') || lower.includes('perdida') || lower.includes('drawdown') || lower.includes('lot') || lower.includes('capital') || lower.includes('máximo') || lower.includes('maximo')) {
+      buckets.riskSl.push(clean);
+    } else if (lower.includes('tp') || lower.includes('target') || lower.includes('parcial') || lower.includes('breakeven') || lower.includes('be ') || lower.includes('r:r') || lower.includes('beneficio') || lower.includes('salida') || lower.includes('ratio')) {
+      buckets.exits.push(clean);
+    } else if (lower.includes('fomo') || lower.includes('revancha') || lower.includes('revenge') || lower.includes('emocion') || lower.includes('emoción') || lower.includes('calma') || lower.includes('psico') || lower.includes('tilt') || lower.includes('paciencia') || lower.includes('regla') || lower.includes('caminar') || lower.includes('apagar')) {
+      buckets.psychology.push(clean);
+    } else if (lower.includes('fvg') || lower.includes('liquidez') || lower.includes('mss') || lower.includes('choch') || lower.includes('setup') || lower.includes('entrada') || lower.includes('gatillo') || lower.includes('vela') || lower.includes('confirmac') || lower.includes('rompe') || lower.includes('soporte') || lower.includes('resistencia') || lower.includes('patron') || lower.includes('patrón') || lower.includes('ote') || lower.includes('fib')) {
+      buckets.setups.push(clean);
+    } else {
+      uncategorized.push(clean);
+    }
+  });
+
+  const formatList = (items, fallbackText) => {
+    if (items.length === 0) return `- ${fallbackText} *(Recomendación Institucional)*`;
+    return items.map(i => `- ${i}`).join('\n');
+  };
+
+  const md = `# PLAYBOOK DE TRADING INSTITUCIONAL: ${style.toUpperCase()}
+> **Propósito:** Documento de gobernanza operativa para auditoría algorítmica y psicotrading en Google NotebookLM.
+> **Modo de Generación:** Motor Local Inteligente ($0 Costo - Procesado en tu navegador).
+
+---
+
+## 1. PARÁMETROS OPERATIVOS & CONTEXTO DE MERCADO
+### Activos Autorizados
+${formatList(buckets.assets, 'Operar exclusivamente en activos de alta liquidez definidos en la sesión (ej: NQ1!, ES1!, EURUSD)')}
+
+### Sesiones & Horarios de Alta Probabilidad
+${formatList(buckets.sessions, 'Operar únicamente durante las ventanas de volumen institucional (New York Open 09:30-11:30 EST o London Open 03:00-05:00 EST)')}
+
+### Filtros Macro & Noticias de Alto Impacto
+${formatList(buckets.news, 'Prohibido abrir posiciones 15 minutos antes y 15 minutos después de eventos de alto impacto (CPI, NFP, FOMC)')}
+
+### Definición de Sesgo (Market Bias)
+${formatList(buckets.bias, 'Determinar el sesgo direccional en temporalidad de 4H y 1H mediante la estructura de máximos/mínimos y flujo de órdenes')}
+
+---
+
+## 2. MODELOS DE ENTRADA & SETUPS A+
+### Condiciones Técnicas & Gatillo de Ejecución
+${formatList(buckets.setups, 'Esperar toma de liquidez previa + desplazamiento institucional + confirmación en temporalidad menor (1m/5m)')}
+
+${uncategorized.length > 0 ? `### Reglas y Consideraciones Adicionales\n${uncategorized.map(u => `- ${u}`).join('\n')}` : ''}
+
+---
+
+## 3. GESTIÓN DE RIESGO & CRITERIOS DE INVALIDACIÓN (NO NEGOCIABLES)
+### Ubicación de Stop Loss & Criterios de Salida
+${formatList(buckets.riskSl, 'El Stop Loss se coloca invariablemente detrás del swing estructural de validación. Nunca mover el Stop Loss en contra')}
+
+### Gestión de Ganancias (Parciales & Breakeven)
+${formatList(buckets.exits, 'Ratio mínimo 1:2 RR. Al alcanzar 1:2 RR, tomar parciales (50%) y mover Stop Loss inmediatamente a Breakeven')}
+
+---
+
+## 4. PROTOCOLOS DE EMERGENCIA & PSICOTRADING
+### Reglas Psicológicas & Control de Tilt
+${formatList(buckets.psychology, 'Prohibido operar por revancha (Revenge Trading). Si se pierden 2 operaciones consecutivas, cerrar la plataforma por el resto del día')}
+
+---
+
+## 5. CHECKLIST PRE-TRADE (FILTRO DE 5 PUNTOS)
+- [ ] 1. ¿El horario y el calendario de noticias permiten operar hoy?
+- [ ] 2. ¿El precio se encuentra en una zona de liquidez clave o nivel institucional?
+- [ ] 3. ¿Existe confirmación y gatillo técnico según las reglas de mi setup?
+- [ ] 4. ¿El Stop Loss técnico respeta mi límite de pérdida monetaria estricto?
+- [ ] 5. ¿Acepto el riesgo del trade con total serenidad y sin apego emocional?
+
+---
+
+## 6. PREGUNTAS DE AUDITORÍA RECOMENDADAS PARA NOTEBOOKLM
+- "¿En qué operaciones registradas en mis bitácoras violé las reglas de Stop Loss o entrada de este Playbook?"
+- "¿Las pérdidas acumuladas de este periodo provinieron de fallos del setup o de errores de ejecución emocional (FOMO/venganza)?"
+- "¿Qué sesión y horario específico registraron la mejor tasa de acierto y respeto al plan según mis datos?"`;
+
+  return md;
+}
+
+// Generador Dual: con Gemini API si hay clave o Modo Local si no hay clave
 async function generateAIPlaybook() {
   const rawInputEl = document.getElementById('strategy-raw-input');
   const styleSelect = document.getElementById('strategy-style-select');
@@ -2889,30 +2998,55 @@ async function generateAIPlaybook() {
   }
 
   const apiKey = (localStorage.getItem(GEMINI_KEY_STORAGE) || '').trim();
-  if (!apiKey) {
-    showToast('Ingresa tu clave gratuita de Google Gemini para generar el playbook automáticamente, o usa el botón "Copiar Prompt Maestro".', 'warning');
-    const keyInput = document.getElementById('gemini-api-key');
-    if (keyInput) {
-      keyInput.focus();
-      keyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    return;
-  }
-
   const btn = document.getElementById('btn-generate-playbook');
   const btnText = document.getElementById('generate-btn-text');
   const originalHtml = btnText ? btnText.innerHTML : '';
 
+  // CASO 1: SIN API KEY -> MODO LOCAL INTELIGENTE ($0 COSTO, SIN REGISTRO)
+  if (!apiKey) {
+    try {
+      if (btn) btn.disabled = true;
+      if (btnText) {
+        btnText.innerHTML = '<i class="fa-solid fa-bolt"></i> Estructurando en Modo Local...';
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 350)); // feedback visual suave
+
+      const localMarkdown = generateLocalPlaybook(rawText, style);
+
+      strategyState.rawInput = rawText;
+      strategyState.style = style;
+      strategyState.markdown = localMarkdown;
+      strategyState.updatedAt = new Date().toISOString();
+
+      const editorEl = document.getElementById('playbook-raw-markdown');
+      if (editorEl) editorEl.value = localMarkdown;
+
+      renderPlaybookMarkdown(localMarkdown);
+      switchPlaybookView('preview');
+      savePlaybookToStorage();
+
+      showToast('⚡ ¡Playbook estructurado con éxito (Modo Local sin API)! Listo para NotebookLM.', 'success');
+    } catch (err) {
+      console.error('Error en modo local:', err);
+      showToast('Error al estructurar el playbook local', 'danger');
+    } finally {
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.innerHTML = originalHtml;
+    }
+    return;
+  }
+
+  // CASO 2: CON API KEY -> GOOGLE GEMINI CON FALLBACK AL MODO LOCAL
   try {
     if (btn) btn.disabled = true;
     if (btnText) {
-      btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analizando con IA y estructurando Playbook...';
+      btnText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analizando con IA (Google Gemini)...';
     }
 
     const systemInstruction = buildPlaybookSystemPrompt(style);
     const userPromptText = `Aquí están mis notas y reglas brutas de trading para que las estructures en mi Playbook Institucional:\n\n${rawText}`;
 
-    // Intentar con gemini-1.5-flash y fallback a gemini-2.0-flash si es necesario
     const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     let generatedMarkdown = null;
     let lastError = null;
@@ -2949,7 +3083,7 @@ async function generateAIPlaybook() {
         const data = await response.json();
         if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
           generatedMarkdown = data.candidates[0].content.parts[0].text;
-          break; // Éxito con este modelo
+          break;
         }
       } catch (err) {
         lastError = err;
@@ -2958,10 +3092,9 @@ async function generateAIPlaybook() {
     }
 
     if (!generatedMarkdown) {
-      throw lastError || new Error('No se pudo generar respuesta de la IA');
+      throw lastError || new Error('No se pudo obtener respuesta de la API de Gemini');
     }
 
-    // Actualizar estado y renderizar
     strategyState.rawInput = rawText;
     strategyState.style = style;
     strategyState.markdown = generatedMarkdown;
@@ -2974,11 +3107,25 @@ async function generateAIPlaybook() {
     switchPlaybookView('preview');
     savePlaybookToStorage();
 
-    showToast('✨ ¡Playbook Institucional generado con éxito y optimizado para NotebookLM!', 'success');
+    showToast('✨ ¡Playbook Institucional generado con IA (Gemini) con éxito!', 'success');
 
   } catch (error) {
-    console.error('Error al generar playbook con Gemini:', error);
-    showToast(`Error de IA: ${error.message}. Verifica tu API Key de Gemini.`, 'danger');
+    console.warn('Fallo llamada a Gemini API, activando fallback local:', error);
+    showToast(`Gemini API: ${error.message}. Activando Modo Local Automático...`, 'warning');
+
+    // Fallback inmediato a Modo Local para no dejar al usuario bloqueado
+    const localMarkdown = generateLocalPlaybook(rawText, style);
+    strategyState.rawInput = rawText;
+    strategyState.style = style;
+    strategyState.markdown = localMarkdown;
+    strategyState.updatedAt = new Date().toISOString();
+
+    const editorEl = document.getElementById('playbook-raw-markdown');
+    if (editorEl) editorEl.value = localMarkdown;
+
+    renderPlaybookMarkdown(localMarkdown);
+    switchPlaybookView('preview');
+    savePlaybookToStorage();
   } finally {
     if (btn) btn.disabled = false;
     if (btnText) btnText.innerHTML = originalHtml;

@@ -1011,26 +1011,29 @@
         <div class="strategy-config-card">
           <div class="config-row">
             <div class="config-api-section">
-              <label><i class="fa-solid fa-key"></i> Clave API de Google Gemini (Free Tier / Gratuita):</label>
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <span><i class="fa-solid fa-key"></i> Clave API de Google Gemini:</span>
+                <span class="badge" style="background: rgba(124, 58, 237, 0.12); color: #7c3aed; font-size: 0.72rem; padding: 2px 8px; border: 1px solid rgba(124, 58, 237, 0.25);">Opcional</span>
+              </label>
               <div class="api-input-group">
                 <div class="api-input-wrapper">
                   <i class="fa-solid fa-lock"></i>
-                  <input type="password" id="gemini-api-key" placeholder="Pega tu API Key (AIzaSy...)" autocomplete="off">
+                  <input type="password" id="gemini-api-key" placeholder="Pega tu API Key si deseas redacción profunda (AIzaSy...)" autocomplete="off">
                   <button type="button" class="btn-icon" onclick="toggleApiKeyVisibility()" title="Mostrar/Ocultar"><i class="fa-regular fa-eye" id="toggle-key-icon"></i></button>
                 </div>
                 <button type="button" class="btn btn-primary btn-sm" onclick="saveGeminiKeyAction()">
                   <i class="fa-solid fa-floppy-disk"></i> Guardar Clave
                 </button>
                 <div class="api-status" id="api-key-status">
-                  <span class="status-dot"></span> <span id="api-status-text">Sin clave configurada</span>
+                  <span class="status-dot"></span> <span id="api-status-text">⚡ Modo Local Activo (Genera sin clave)</span>
                 </div>
               </div>
               <div class="api-help-links">
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Obtener API Key gratis en Google AI Studio (10 segundos)
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Obtener clave gratuita en Google AI Studio (100% Gratis)
                 </a>
                 <span class="text-separator">•</span>
-                <span class="secure-tag"><i class="fa-solid fa-shield-halved"></i> Se guarda 100% en tu navegador (Privada y segura)</span>
+                <span class="secure-tag"><i class="fa-solid fa-bolt"></i> Si no tienes clave, el botón generará tu Playbook directamente en tu navegador ($0).</span>
               </div>
             </div>
 
@@ -1056,7 +1059,7 @@
                 <span class="step-num">1</span>
                 <div>
                   <h4>Mis Reglas & Setups de Trading</h4>
-                  <p class="subtitle">Escribe como piensas. La IA ordenará el lenguaje institucional, invalidaciones y filtros.</p>
+                  <p class="subtitle">Escribe como piensas. La IA o el motor local ordenará el lenguaje institucional, invalidaciones y filtros.</p>
                 </div>
               </div>
               <div class="card-header-actions">
@@ -1101,11 +1104,14 @@ Por ejemplo:
 - Si pierdo 2 seguidos, apago pantallas y salgo a caminar."></textarea>
             </div>
 
-            <!-- Submit Button with AI Shimmer -->
+            <!-- Submit Button with Dual Mode Hint -->
             <div style="margin-top: 1rem;">
               <button type="button" id="btn-generate-playbook" class="btn btn-primary btn-block btn-ai-generate" onclick="generateAIPlaybook()">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="generate-btn-text">Generar Playbook Institucional con IA</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="generate-btn-text">Generar Playbook Institucional (IA / Modo Local)</span>
               </button>
+              <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 0.4rem;">
+                Funciona con la API de Gemini o 100% Local en tu navegador sin clave ($0 costo).
+              </div>
             </div>
           </div>
 
