@@ -2198,7 +2198,7 @@ input[type="range"] {
    ========================================================================== */
 @media print {
   @page {
-    margin: 6mm 8mm !important;
+    margin: 8mm 10mm !important;
     size: A4 portrait;
   }
   
@@ -2213,8 +2213,8 @@ input[type="range"] {
   html, body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 7.8pt !important;
-    line-height: 1.2 !important;
+    font-size: 8.8pt !important;
+    line-height: 1.35 !important;
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
@@ -2293,8 +2293,8 @@ input[type="range"] {
     overflow: visible !important;
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 7.8pt !important;
-    line-height: 1.2 !important;
+    font-size: 8.8pt !important;
+    line-height: 1.35 !important;
   }
 
   /* Page Break Control: Clean 2-page split */
@@ -2325,222 +2325,304 @@ input[type="range"] {
     padding-top: 0 !important;
   }
 
-  /* Compact Layout - Page 1: Pre-Mercado & Folio Maestro */
-  body.print-paper-mode .paper-header {
+  /* =========================================================================
+     PÁGINA 1: PRE-MERCADO & FOLIO MAESTRO (Espaciosa, proporcionada y cómoda)
+     ========================================================================= */
+  body.print-paper-mode .paper-page.page-1 .paper-header {
     border-bottom: 2px solid #0f172a !important;
-    padding-bottom: 2px !important;
-    margin-bottom: 4px !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 10px !important;
   }
 
-  body.print-paper-mode .paper-title-row {
-    margin-bottom: 2px !important;
+  body.print-paper-mode .paper-page.page-1 .paper-title-row {
+    margin-bottom: 6px !important;
   }
 
-  body.print-paper-mode .paper-brand {
+  body.print-paper-mode .paper-page.page-1 .paper-brand {
+    font-size: 0.92rem !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-sheet-title {
+    font-size: 1.2rem !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-sheet-badge {
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-header-grid {
+    gap: 8px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-field-box {
+    gap: 8px !important;
+    min-width: 200px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-label {
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-fill-line {
+    min-height: 1.45rem !important;
+    border-bottom: 1.5px dotted #64748b !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-checkboxes {
     font-size: 0.8rem !important;
   }
 
-  body.print-paper-mode .paper-sheet-title {
-    font-size: 0.95rem !important;
-  }
-
-  body.print-paper-mode .paper-sheet-badge {
-    font-size: 0.65rem !important;
-    padding: 1px 5px !important;
-  }
-
-  body.print-paper-mode .paper-header-grid {
-    gap: 3px !important;
-  }
-
-  body.print-paper-mode .paper-field-box {
-    gap: 3px !important;
-    min-width: 160px !important;
-  }
-
-  body.print-paper-mode .paper-label {
-    font-size: 0.72rem !important;
-  }
-
-  body.print-paper-mode .paper-fill-line {
-    min-height: 1rem !important;
-  }
-
-  body.print-paper-mode .paper-checkboxes {
-    font-size: 0.72rem !important;
-  }
-
-  body.print-paper-mode .paper-section {
-    margin-bottom: 4px !important;
-    padding: 4px 6px !important;
-    border: 1px solid #000000 !important;
-    border-radius: 4px !important;
+  /* Fase 1 */
+  body.print-paper-mode .paper-page.page-1 .paper-section {
+    margin-bottom: 12px !important;
+    padding: 8px 12px !important;
+    border: 1.5px solid #0f172a !important;
+    border-radius: 6px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  body.print-paper-mode .paper-section-title {
-    font-size: 0.73rem !important;
-    padding: 2px 5px !important;
-    margin-bottom: 3px !important;
-    border-left-width: 3px !important;
+  body.print-paper-mode .paper-page.page-1 .paper-section-title {
+    font-size: 0.85rem !important;
+    padding: 4px 8px !important;
+    margin-bottom: 8px !important;
+    border-left-width: 4px !important;
+    font-weight: 800 !important;
   }
 
-  body.print-paper-mode .paper-flex-row {
+  body.print-paper-mode .paper-page.page-1 .paper-flex-row {
+    gap: 10px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-box {
+    padding: 7px 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background: #fafafa !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-sublabel {
+    font-size: 0.72rem !important;
+    margin-bottom: 4px !important;
+    font-weight: 800 !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-options {
+    font-size: 0.8rem !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-bubble-rating {
+    gap: 0.35rem !important;
+    margin-top: 4px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-bubble-rating span {
+    width: 22px !important;
+    height: 22px !important;
+    line-height: 20px !important;
+    font-size: 0.74rem !important;
+    border: 1.5px solid #475569 !important;
+    border-radius: 50% !important;
+    font-weight: 800 !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-checklist {
+    font-size: 0.78rem !important;
     gap: 4px !important;
+    margin-top: 2px !important;
   }
 
-  body.print-paper-mode .paper-flex-row[style*="margin-top"] {
-    margin-top: 3px !important;
+  body.print-paper-mode .paper-page.page-1 .paper-risk-grid {
+    font-size: 0.8rem !important;
+    gap: 10px !important;
+    margin-top: 2px !important;
   }
 
-  body.print-paper-mode .paper-box {
-    padding: 3px 5px !important;
-    border: 1px solid #666666 !important;
-    border-radius: 4px !important;
-    background: #ffffff !important;
-  }
-
-  body.print-paper-mode .paper-box[style*="margin-top"] {
-    margin-top: 3px !important;
-  }
-
-  body.print-paper-mode .paper-box[style*="margin-bottom"] {
-    margin-bottom: 3px !important;
-  }
-
-  body.print-paper-mode .paper-sublabel {
-    font-size: 0.65rem !important;
-    margin-bottom: 1px !important;
-  }
-
-  body.print-paper-mode .paper-options {
-    font-size: 0.7rem !important;
-  }
-
-  body.print-paper-mode .paper-bubble-rating {
-    gap: 0.2rem !important;
-  }
-
-  body.print-paper-mode .paper-bubble-rating span {
-    width: 15px !important;
-    height: 15px !important;
-    line-height: 13px !important;
-    font-size: 0.6rem !important;
-  }
-
-  body.print-paper-mode .paper-checklist {
-    font-size: 0.7rem !important;
-    gap: 1px !important;
-  }
-
-  body.print-paper-mode .paper-risk-grid {
-    font-size: 0.7rem !important;
-    gap: 3px !important;
-  }
-
-  /* Folio Maestro specific */
-  body.print-paper-mode .paper-folio-section {
-    border: 1.5px solid #7c3aed !important;
+  /* Folio Maestro: Líneas de escritura amplias para lápiz */
+  body.print-paper-mode .paper-page.page-1 .paper-folio-section {
+    border: 2px solid #7c3aed !important;
     background: #faf5ff !important;
   }
 
+  body.print-paper-mode .paper-page.page-1 .paper-folio-section .paper-section-title {
+    background: #7c3aed !important;
+    color: #ffffff !important;
+    border-left: none !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 .paper-folio-section .paper-box {
+    background: #ffffff !important;
+    border-color: #ddd6fe !important;
+    margin-bottom: 8px !important;
+    padding: 7px 10px !important;
+  }
+
   body.print-paper-mode .paper-lines-list {
-    gap: 3px !important;
-    padding-top: 1px !important;
+    gap: 10px !important;
+    padding-top: 6px !important;
   }
 
   body.print-paper-mode .paper-lines-list > div > div {
-    height: 0.95rem !important;
+    height: 1.65rem !important;
+    border-bottom: 1.5px dotted #7c3aed !important;
   }
 
   body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] {
-    gap: 3px !important;
-    padding-top: 2px !important;
+    gap: 10px !important;
+    padding-top: 6px !important;
   }
 
   body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] > div {
-    font-size: 0.72rem !important;
-    gap: 4px !important;
+    font-size: 0.82rem !important;
+    gap: 6px !important;
   }
 
   body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] > div > div {
-    height: 0.95rem !important;
+    height: 1.5rem !important;
+    border-bottom: 1.5px dotted #64748b !important;
   }
 
-  /* Compact Layout - Page 2: 1 Single Column for 4 Trades & Retrospective */
+  body.print-paper-mode .paper-page.page-1 .paper-footer {
+    margin-top: 10px !important;
+    padding-top: 6px !important;
+    font-size: 0.72rem !important;
+    border-top: 1px solid #e2e8f0 !important;
+  }
+
+  /* =========================================================================
+     PÁGINA 2: EJECUCIÓN (4 TRADES EN 1 COLUMNA COMPLETA) & RETROSPECTIVA
+     ========================================================================= */
+  body.print-paper-mode .paper-page.page-2 .paper-header {
+    border-bottom: 2px solid #0f172a !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 6px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-title-row {
+    margin-bottom: 3px !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-sheet-title {
+    font-size: 1.1rem !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-section {
+    margin-bottom: 6px !important;
+    padding: 6px 10px !important;
+    border: 1.5px solid #0f172a !important;
+    border-radius: 6px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-section-title {
+    font-size: 0.82rem !important;
+    padding: 3px 8px !important;
+    margin-bottom: 5px !important;
+    font-weight: 800 !important;
+  }
+
+  /* 4 Trades en 1 sola columna amplia vertical */
   body.print-paper-mode .paper-trades-grid {
     display: flex !important;
     flex-direction: column !important;
-    gap: 3px !important;
-    margin-bottom: 2px !important;
+    gap: 4px !important;
+    margin-bottom: 4px !important;
   }
 
   body.print-paper-mode .paper-trade-card {
-    padding: 3px 6px !important;
-    border: 1px solid #000000 !important;
-    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    border: 1px solid #334155 !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
   body.print-paper-mode .paper-trade-header {
-    font-size: 0.72rem !important;
-    padding-bottom: 1px !important;
-    margin-bottom: 1px !important;
+    font-size: 0.78rem !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 2px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
   }
 
   body.print-paper-mode .paper-trade-row {
-    font-size: 0.68rem !important;
-    margin-bottom: 1px !important;
+    font-size: 0.74rem !important;
+    margin-bottom: 1.5px !important;
   }
 
   body.print-paper-mode .paper-trade-row.tags-row {
-    font-size: 0.64rem !important;
-    gap: 5px !important;
-    line-height: 1.15 !important;
+    font-size: 0.7rem !important;
+    gap: 7px !important;
+    margin-bottom: 1.5px !important;
   }
 
   body.print-paper-mode .mini-label {
-    font-size: 0.65rem !important;
+    font-size: 0.7rem !important;
   }
 
   body.print-paper-mode .paper-sketch-box {
-    height: 28px !important;
-    margin-top: 1px !important;
-    border-color: #888888 !important;
-    background: #ffffff !important;
+    height: 38px !important;
+    margin-top: 2px !important;
+    border: 1px dashed #94a3b8 !important;
+    background: #fafafa !important;
   }
 
   body.print-paper-mode .sketch-watermark {
-    font-size: 0.58rem !important;
+    font-size: 0.65rem !important;
+    color: #94a3b8 !important;
   }
 
   body.print-paper-mode .paper-summary-banner {
-    padding: 2px 6px !important;
-    font-size: 0.7rem !important;
-    margin-top: 2px !important;
+    padding: 4px 8px !important;
+    font-size: 0.78rem !important;
+    margin-top: 3px !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  /* Fase 3 Retrospectiva */
+  body.print-paper-mode .paper-page.page-2 .paper-box {
+    padding: 5px 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-sublabel {
+    font-size: 0.72rem !important;
+    margin-bottom: 2px !important;
+    font-weight: 800 !important;
+  }
+
+  body.print-paper-mode .paper-page.page-2 .paper-bubble-rating span {
+    width: 20px !important;
+    height: 20px !important;
+    line-height: 18px !important;
+    font-size: 0.72rem !important;
   }
 
   body.print-paper-mode .paper-checklist-grid {
     grid-template-columns: repeat(4, 1fr) !important;
     gap: 2px !important;
-    font-size: 0.68rem !important;
+    font-size: 0.72rem !important;
   }
 
   body.print-paper-mode .paper-notebook-lines {
-    gap: 8px !important;
-    padding: 2px !important;
+    gap: 12px !important;
+    padding: 3px !important;
   }
 
-  body.print-paper-mode .paper-notebook-lines .line:nth-child(n+5) {
-    display: none !important;
+  body.print-paper-mode .paper-notebook-lines .line {
+    border-bottom: 1.5px dotted #94a3b8 !important;
   }
 
-  body.print-paper-mode .paper-footer {
-    margin-top: 2px !important;
-    padding-top: 1px !important;
-    font-size: 0.62rem !important;
+  body.print-paper-mode .paper-page.page-2 .paper-footer {
+    margin-top: 4px !important;
+    padding-top: 2px !important;
+    font-size: 0.68rem !important;
   }
 
   /* =========================================================================
