@@ -2198,7 +2198,7 @@ input[type="range"] {
    ========================================================================== */
 @media print {
   @page {
-    margin: 1cm;
+    margin: 6mm 8mm !important;
     size: A4 portrait;
   }
   
@@ -2210,101 +2210,337 @@ input[type="range"] {
     text-shadow: none !important;
   }
 
-  body {
+  html, body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 9.5pt !important;
+    font-size: 7.8pt !important;
+    line-height: 1.2 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  /* Universal Hide: App navigation, buttons, controls, toasts */
+  /* Universal Hide: App navigation, buttons, controls, toasts & non-active modals */
   header, nav, .header-actions, .phase-stepper, 
   .export-mode-switcher, #mode-btn-notebooklm, #mode-btn-personal, 
   .notebooklm-banner, .form-grid, 
   #actions-notebooklm, #actions-personal, 
   .toast-container, .btn, button, .no-print,
-  #lightbox-modal, #trade-modal {
+  .modal-backdrop:not(#paper-template-modal),
+  #auth-modal, #migrate-modal, #lightbox-modal, #trade-modal {
     display: none !important;
   }
 
   /* =========================================================================
-     MODE 1: PRINTING PAPER WORKSHEET (Bitácora Física para lápiz)
+     MODE 1: PRINTING PAPER WORKSHEET (Bitácora Física para lápiz - 2 Páginas)
      ========================================================================= */
   body.print-paper-mode .app-container {
     display: none !important;
   }
 
-  body.print-paper-mode #paper-template-modal {
+  body.print-paper-mode #paper-template-modal,
+  #paper-template-modal.active {
     display: block !important;
     visibility: visible !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     background: #ffffff !important;
     padding: 0 !important;
     margin: 0 !important;
     opacity: 1 !important;
-    z-index: 99999 !important;
+    transform: none !important;
+    z-index: auto !important;
   }
 
   body.print-paper-mode .paper-modal-content {
+    display: block !important;
+    position: static !important;
     max-width: 100% !important;
     width: 100% !important;
-    background: #ffffff !important;
-    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
   }
 
   body.print-paper-mode .paper-sheet {
+    display: block !important;
+    position: static !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0.2cm !important;
-    width: 100% !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-
-  body.print-paper-mode .paper-section {
-    border-color: #000000 !important;
-  }
-
-  body.print-paper-mode .paper-folio-section {
-    border-color: #7c3aed !important;
-    background: #ffffff !important;
-  }
-
-  body.print-paper-mode .paper-trade-card {
-    border-color: #000000 !important;
-    page-break-inside: avoid !important;
-  }
-
-  body.print-paper-mode .paper-box {
-    border-color: #555555 !important;
-    background: #ffffff !important;
-  }
-
-  body.print-paper-mode .paper-sketch-box {
-    border-color: #555555 !important;
-    background: #ffffff !important;
-  }
-
-  body.print-paper-mode .page-break {
-    border-top: none !important;
+    padding: 0 !important;
     margin: 0 !important;
-    page-break-before: always !important;
-    break-before: page !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 7.8pt !important;
+    line-height: 1.2 !important;
   }
 
-  body.print-paper-mode .page-break::after {
+  /* Page Break Control: Clean 2-page split */
+  body.print-paper-mode .page-break {
     display: none !important;
   }
 
+  body.print-paper-mode .paper-page {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.print-paper-mode .paper-page.page-1 {
+    page-break-after: auto !important;
+    break-after: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
   body.print-paper-mode .paper-page.page-2 {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     margin-top: 0 !important;
-    padding-top: 0.2cm !important;
+    padding-top: 0 !important;
+  }
+
+  /* Compact Layout - Page 1: Pre-Mercado & Folio Maestro */
+  body.print-paper-mode .paper-header {
+    border-bottom: 2px solid #0f172a !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  body.print-paper-mode .paper-title-row {
+    margin-bottom: 2px !important;
+  }
+
+  body.print-paper-mode .paper-brand {
+    font-size: 0.8rem !important;
+  }
+
+  body.print-paper-mode .paper-sheet-title {
+    font-size: 0.95rem !important;
+  }
+
+  body.print-paper-mode .paper-sheet-badge {
+    font-size: 0.65rem !important;
+    padding: 1px 5px !important;
+  }
+
+  body.print-paper-mode .paper-header-grid {
+    gap: 3px !important;
+  }
+
+  body.print-paper-mode .paper-field-box {
+    gap: 3px !important;
+    min-width: 160px !important;
+  }
+
+  body.print-paper-mode .paper-label {
+    font-size: 0.72rem !important;
+  }
+
+  body.print-paper-mode .paper-fill-line {
+    min-height: 1rem !important;
+  }
+
+  body.print-paper-mode .paper-checkboxes {
+    font-size: 0.72rem !important;
+  }
+
+  body.print-paper-mode .paper-section {
+    margin-bottom: 4px !important;
+    padding: 4px 6px !important;
+    border: 1px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body.print-paper-mode .paper-section-title {
+    font-size: 0.73rem !important;
+    padding: 2px 5px !important;
+    margin-bottom: 3px !important;
+    border-left-width: 3px !important;
+  }
+
+  body.print-paper-mode .paper-flex-row {
+    gap: 4px !important;
+  }
+
+  body.print-paper-mode .paper-flex-row[style*="margin-top"] {
+    margin-top: 3px !important;
+  }
+
+  body.print-paper-mode .paper-box {
+    padding: 3px 5px !important;
+    border: 1px solid #666666 !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+  }
+
+  body.print-paper-mode .paper-box[style*="margin-top"] {
+    margin-top: 3px !important;
+  }
+
+  body.print-paper-mode .paper-box[style*="margin-bottom"] {
+    margin-bottom: 3px !important;
+  }
+
+  body.print-paper-mode .paper-sublabel {
+    font-size: 0.65rem !important;
+    margin-bottom: 1px !important;
+  }
+
+  body.print-paper-mode .paper-options {
+    font-size: 0.7rem !important;
+  }
+
+  body.print-paper-mode .paper-bubble-rating {
+    gap: 0.2rem !important;
+  }
+
+  body.print-paper-mode .paper-bubble-rating span {
+    width: 15px !important;
+    height: 15px !important;
+    line-height: 13px !important;
+    font-size: 0.6rem !important;
+  }
+
+  body.print-paper-mode .paper-checklist {
+    font-size: 0.7rem !important;
+    gap: 1px !important;
+  }
+
+  body.print-paper-mode .paper-risk-grid {
+    font-size: 0.7rem !important;
+    gap: 3px !important;
+  }
+
+  /* Folio Maestro specific */
+  body.print-paper-mode .paper-folio-section {
+    border: 1.5px solid #7c3aed !important;
+    background: #faf5ff !important;
+  }
+
+  body.print-paper-mode .paper-lines-list {
+    gap: 3px !important;
+    padding-top: 1px !important;
+  }
+
+  body.print-paper-mode .paper-lines-list > div > div {
+    height: 0.95rem !important;
+  }
+
+  body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] {
+    gap: 3px !important;
+    padding-top: 2px !important;
+  }
+
+  body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] > div {
+    font-size: 0.72rem !important;
+    gap: 4px !important;
+  }
+
+  body.print-paper-mode .paper-folio-section div[style*="flex-direction: column"] > div > div {
+    height: 0.95rem !important;
+  }
+
+  /* Compact Layout - Page 2: 1 Single Column for 4 Trades & Retrospective */
+  body.print-paper-mode .paper-trades-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    margin-bottom: 2px !important;
+  }
+
+  body.print-paper-mode .paper-trade-card {
+    padding: 3px 6px !important;
+    border: 1px solid #000000 !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body.print-paper-mode .paper-trade-header {
+    font-size: 0.72rem !important;
+    padding-bottom: 1px !important;
+    margin-bottom: 1px !important;
+  }
+
+  body.print-paper-mode .paper-trade-row {
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
+  }
+
+  body.print-paper-mode .paper-trade-row.tags-row {
+    font-size: 0.64rem !important;
+    gap: 5px !important;
+    line-height: 1.15 !important;
+  }
+
+  body.print-paper-mode .mini-label {
+    font-size: 0.65rem !important;
+  }
+
+  body.print-paper-mode .paper-sketch-box {
+    height: 28px !important;
+    margin-top: 1px !important;
+    border-color: #888888 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-paper-mode .sketch-watermark {
+    font-size: 0.58rem !important;
+  }
+
+  body.print-paper-mode .paper-summary-banner {
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+    margin-top: 2px !important;
+  }
+
+  body.print-paper-mode .paper-checklist-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 2px !important;
+    font-size: 0.68rem !important;
+  }
+
+  body.print-paper-mode .paper-notebook-lines {
+    gap: 8px !important;
+    padding: 2px !important;
+  }
+
+  body.print-paper-mode .paper-notebook-lines .line:nth-child(n+5) {
+    display: none !important;
+  }
+
+  body.print-paper-mode .paper-footer {
+    margin-top: 2px !important;
+    padding-top: 1px !important;
+    font-size: 0.62rem !important;
   }
 
   /* =========================================================================

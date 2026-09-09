@@ -1882,6 +1882,13 @@ function printPaperTemplate() {
   window.print();
 }
 
+window.addEventListener('beforeprint', () => {
+  const modal = document.getElementById('paper-template-modal');
+  if (modal && modal.classList.contains('active')) {
+    document.body.classList.add('print-paper-mode');
+  }
+});
+
 window.addEventListener('afterprint', () => {
   const modal = document.getElementById('paper-template-modal');
   if (!modal || !modal.classList.contains('active')) {
