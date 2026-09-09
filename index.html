@@ -50,6 +50,9 @@
         <button class="nav-btn" id="nav-btn-history" onclick="switchTab('history')">
           <i class="fa-solid fa-clock-rotate-left"></i> Historial
         </button>
+        <button class="nav-btn" id="nav-btn-strategy" onclick="switchTab('strategy')">
+          <i class="fa-solid fa-chess-knight"></i> Estrategia IA
+        </button>
         <button class="nav-btn" id="nav-btn-notebooklm" onclick="switchTab('notebooklm')">
           <i class="fa-solid fa-brain"></i> Reportes NotebookLM
         </button>
@@ -301,6 +304,16 @@
             <div class="tool-info">
               <h4>Plantilla de Papel (Imprimible)</h4>
               <p>Diseño limpio sin tinta negra pesada. Registra a lápiz en vivo durante la campana y transcribe al terminar.</p>
+            </div>
+            <div class="tool-action-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+          </div>
+
+          <!-- Tool: Estrategia IA -->
+          <div class="tool-card" onclick="switchTab('strategy')">
+            <div class="tool-icon" style="background: rgba(124, 58, 237, 0.1); color: #7c3aed;"><i class="fa-solid fa-chess-knight"></i></div>
+            <div class="tool-info">
+              <h4>Playbook & Estrategia IA</h4>
+              <p>Envía tus notas de trading desordenadas para que la IA cree un Playbook institucional listo para NotebookLM.</p>
             </div>
             <div class="tool-action-arrow"><i class="fa-solid fa-arrow-right"></i></div>
           </div>
@@ -886,6 +899,9 @@
           <div class="notebooklm-info">
             <h3><i class="fa-solid fa-brain"></i> Integración Especial con Google NotebookLM</h3>
             <p>Genera reportes formateados en Markdown con prompts de análisis integrados para tu IA.</p>
+            <div style="margin-top: 0.4rem; font-size: 0.82rem; color: var(--accent-primary);">
+              💡 <strong>Tip de Auditoría:</strong> Sube también tu <a href="#" onclick="switchTab('strategy'); return false;" style="color: var(--accent-primary); text-decoration: underline; font-weight: 700;">Playbook de Estrategia</a> como fuente en NotebookLM para auditar tus reglas contra tus ejecuciones.
+            </div>
           </div>
           <div>
             <span class="badge badge-profit" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">100% Compatible</span>
@@ -969,6 +985,229 @@
       </div>
     </section>
 
+    <!-- TAB 5: PLAYBOOK & ESTRATEGIA IA (NOTEBOOKLM READY) -->
+    <section id="tab-strategy" class="tab-content">
+      <div class="glass-card">
+        
+        <!-- Header Banner -->
+        <div class="strategy-header-banner">
+          <div class="strategy-header-info">
+            <div class="strategy-badge-glow">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Potenciado con IA
+            </div>
+            <h2><i class="fa-solid fa-chess-knight"></i> Playbook & Estrategia IA para NotebookLM</h2>
+            <p>Escribe o pega tus reglas operativas (aunque estén desordenadas) y la IA las transformará en un <strong>Playbook Institucional Maestro</strong>. Descárgalo y súbelo a Google NotebookLM junto con tus bitácoras para auditar tus trades como un gestor de fondos.</p>
+          </div>
+          <div class="strategy-synergy-pill">
+            <div class="pill-step"><span>1</span> Estrategia (Esta Fuente)</div>
+            <div class="pill-arrow">+</div>
+            <div class="pill-step"><span>2</span> Bitácora (Pestaña Reportes)</div>
+            <div class="pill-arrow">=</div>
+            <div class="pill-step highlight"><span>🤖</span> Auditoría IA Personalizada</div>
+          </div>
+        </div>
+
+        <!-- AI API Configuration & Master Prompt Helper -->
+        <div class="strategy-config-card">
+          <div class="config-row">
+            <div class="config-api-section">
+              <label><i class="fa-solid fa-key"></i> Clave API de Google Gemini (Free Tier / Gratuita):</label>
+              <div class="api-input-group">
+                <div class="api-input-wrapper">
+                  <i class="fa-solid fa-lock"></i>
+                  <input type="password" id="gemini-api-key" placeholder="Pega tu API Key (AIzaSy...)" autocomplete="off">
+                  <button type="button" class="btn-icon" onclick="toggleApiKeyVisibility()" title="Mostrar/Ocultar"><i class="fa-regular fa-eye" id="toggle-key-icon"></i></button>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="saveGeminiKeyAction()">
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar Clave
+                </button>
+                <div class="api-status" id="api-key-status">
+                  <span class="status-dot"></span> <span id="api-status-text">Sin clave configurada</span>
+                </div>
+              </div>
+              <div class="api-help-links">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Obtener API Key gratis en Google AI Studio (10 segundos)
+                </a>
+                <span class="text-separator">•</span>
+                <span class="secure-tag"><i class="fa-solid fa-shield-halved"></i> Se guarda 100% en tu navegador (Privada y segura)</span>
+              </div>
+            </div>
+
+            <div class="config-prompt-section">
+              <div class="prompt-box-header">
+                <strong>¿Prefieres usar ChatGPT o Claude Web?</strong>
+              </div>
+              <p>Copia nuestro Prompt Institucional Maestro con tus notas inyectadas y ejecútalo directamente en tu chatbot de IA favorito.</p>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyMasterStrategyPrompt()">
+                <i class="fa-solid fa-copy"></i> Copiar Prompt Maestro para Chatbot
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Strategy Studio Main Grid (Input left / Playbook preview right) -->
+        <div class="strategy-studio-grid">
+          
+          <!-- Column 1: Trader's Raw Strategy Input -->
+          <div class="strategy-studio-card">
+            <div class="card-header-flex">
+              <div class="card-header-title">
+                <span class="step-num">1</span>
+                <div>
+                  <h4>Mis Reglas & Setups de Trading</h4>
+                  <p class="subtitle">Escribe como piensas. La IA ordenará el lenguaje institucional, invalidaciones y filtros.</p>
+                </div>
+              </div>
+              <div class="card-header-actions">
+                <button type="button" class="btn btn-outline-info btn-xs" onclick="loadSampleStrategy()" title="Cargar plantilla de ejemplo">
+                  <i class="fa-solid fa-lightbulb"></i> Cargar Ejemplo
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="clearStrategyInput()" title="Limpiar texto">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Strategy Style Selector -->
+            <div class="form-group" style="margin-top: 0.75rem;">
+              <label style="font-size: 0.8rem;"><i class="fa-solid fa-sliders"></i> Enfoque / Estilo Operativo Principal:</label>
+              <select id="strategy-style-select" class="form-select-sm">
+                <option value="SMC / ICT & Order Flow">Smart Money Concepts (ICT / SMC / Order Flow & Liquidez)</option>
+                <option value="Price Action Clásico & S/R">Acción del Precio Clásica (Soportes, Resistencias & Líneas de Tendencia)</option>
+                <option value="Scalping & Breakouts de Alta Frecuencia">Scalping & Rupturas de Volatilidad / Momentum</option>
+                <option value="Swing Trading Cuantitativo / Macro">Swing Trading Macro & Tendencial</option>
+                <option value="Reglas Estrictas de Cuenta de Fondeo (Prop Firm)">Gestión Estricta para Cuentas de Fondeo (Evaluación / Fondeada)</option>
+              </select>
+            </div>
+
+            <!-- Raw Text Area -->
+            <div class="form-group" style="margin-top: 0.75rem; flex: 1; display: flex; flex-direction: column;">
+              <label style="font-size: 0.8rem; display: flex; justify-content: space-between;">
+                <span><i class="fa-solid fa-align-left"></i> Notas brutas, reglas y parámetros:</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);" id="strategy-char-count">0 caracteres</span>
+              </label>
+              <textarea id="strategy-raw-input" class="strategy-textarea" placeholder="Pega aquí tus notas tal como las tengas...
+
+Por ejemplo:
+- Opero NQ en la sesión de Nueva York de 9:30 a 11:30.
+- Busco que el precio barra los máximos o mínimos del día anterior o de la sesión de Asia.
+- Espero un cambio de estructura (ChoCH / MSS) en 1 minuto o 5 minutos con vela fuerte.
+- Entro en el FVG (Fair Value Gap) o retroceso al 50%.
+- El Stop Loss siempre va detrás del swing que causó la ruptura (máximo 20 puntos).
+- Tomo parciales al 1:2 y muevo a Breakeven. Busco 1:3 o siguiente zona de liquidez.
+- No opero si hay noticias de CPI, NFP o FOMC hasta 15 min después.
+- Riesgo máximo: 1% de la cuenta por trade, máximo 2 trades al día.
+- Si pierdo 2 seguidos, apago pantallas y salgo a caminar."></textarea>
+            </div>
+
+            <!-- Submit Button with AI Shimmer -->
+            <div style="margin-top: 1rem;">
+              <button type="button" id="btn-generate-playbook" class="btn btn-primary btn-block btn-ai-generate" onclick="generateAIPlaybook()">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="generate-btn-text">Generar Playbook Institucional con IA</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Column 2: Generated Playbook for NotebookLM -->
+          <div class="strategy-studio-card">
+            <div class="card-header-flex">
+              <div class="card-header-title">
+                <span class="step-num">2</span>
+                <div>
+                  <h4>Playbook Formateado para NotebookLM</h4>
+                  <p class="subtitle">Estructura markdown indexable como fuente de conocimiento para Google NotebookLM.</p>
+                </div>
+              </div>
+              
+              <!-- View / Edit mode switcher -->
+              <div class="playbook-view-tabs">
+                <button type="button" class="view-tab-btn active" id="btn-tab-preview" onclick="switchPlaybookView('preview')">
+                  <i class="fa-solid fa-eye"></i> Vista Previa
+                </button>
+                <button type="button" class="view-tab-btn" id="btn-tab-edit" onclick="switchPlaybookView('edit')">
+                  <i class="fa-solid fa-code"></i> Editar Markdown
+                </button>
+              </div>
+            </div>
+
+            <!-- Action Toolbar -->
+            <div class="playbook-toolbar">
+              <div class="toolbar-left">
+                <button type="button" class="btn btn-success btn-xs" onclick="downloadPlaybookMD()" title="Descargar como archivo Markdown (.md)">
+                  <i class="fa-solid fa-download"></i> Descargar .MD (NotebookLM)
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="downloadPlaybookTXT()" title="Descargar como archivo de texto plano (.txt)">
+                  <i class="fa-solid fa-file-lines"></i> .TXT
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="copyPlaybookMarkdown()" title="Copiar todo el markdown al portapapeles">
+                  <i class="fa-regular fa-copy"></i> Copiar
+                </button>
+              </div>
+              <div class="toolbar-right">
+                <button type="button" class="btn btn-outline-primary btn-xs" onclick="savePlaybookAction()" title="Guardar cambios en el diario">
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar
+                </button>
+              </div>
+            </div>
+
+            <!-- Content Area: Preview & Raw Editor -->
+            <div class="playbook-content-container">
+              <!-- Rendered Visual Preview -->
+              <div id="playbook-preview-container" class="playbook-rendered-view">
+                <div class="empty-state-card" id="playbook-empty-state">
+                  <i class="fa-solid fa-chess-knight" style="font-size: 3rem; color: var(--accent-primary); opacity: 0.6; margin-bottom: 1rem;"></i>
+                  <h4>Aún no has generado tu Playbook</h4>
+                  <p>Ingresa tus reglas a la izquierda y presiona <strong>"Generar Playbook Institucional con IA"</strong> o carga un ejemplo para ver el resultado listo para NotebookLM.</p>
+                </div>
+                <div id="playbook-rendered-content" class="playbook-markdown-body" style="display: none;"></div>
+              </div>
+
+              <!-- Raw Editable Textarea -->
+              <textarea id="playbook-raw-markdown" class="playbook-editor-textarea" style="display: none;" oninput="syncPlaybookEdit()"></textarea>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- NotebookLM Prompts Audit Guide Card -->
+        <div class="notebooklm-audit-guide-card">
+          <div class="guide-header">
+            <div class="guide-badge"><i class="fa-solid fa-brain"></i> Guía Práctica de Auditoría</div>
+            <h3>Cómo auditar tu trading en Google NotebookLM paso a paso</h3>
+            <p>Una vez que subas este <strong>Playbook</strong> y tus <strong>Reportes de Sesión</strong> en un mismo cuaderno de NotebookLM, utiliza estos prompts probados:</p>
+          </div>
+          
+          <div class="prompts-grid">
+            <div class="audit-prompt-card" onclick="copyPromptToClipboard(this)">
+              <div class="prompt-tag">Auditoría de Disciplina</div>
+              <p class="prompt-text">"Analiza todas mis sesiones de este mes y compáralas con mi Playbook de Estrategia. Identifica en qué trades violé mis reglas de entrada o mis criterios de invalidación."</p>
+              <span class="click-copy-hint"><i class="fa-regular fa-copy"></i> Clic para copiar prompt</span>
+            </div>
+
+            <div class="audit-prompt-card" onclick="copyPromptToClipboard(this)">
+              <div class="prompt-tag">Patrones de Pérdidas</div>
+              <p class="prompt-text">"Revisa los trades perdedores y dime: ¿las pérdidas se debieron al riesgo natural del mercado aceptado en mi estrategia, o a errores de sobreoperar y cerrar antes de tiempo?"</p>
+              <span class="click-copy-hint"><i class="fa-regular fa-copy"></i> Clic para copiar prompt</span>
+            </div>
+
+            <div class="audit-prompt-card" onclick="copyPromptToClipboard(this)">
+              <div class="prompt-tag">Filtro de Horarios & Emociones</div>
+              <p class="prompt-text">"Compara mi estado emocional pre-sesión y los horarios en que operé con los resultados obtenidos. ¿En qué condiciones emocionales o de mercado mi Playbook genera el mayor drawdown?"</p>
+              <span class="click-copy-hint"><i class="fa-regular fa-copy"></i> Clic para copiar prompt</span>
+            </div>
+
+            <div class="audit-prompt-card" onclick="copyPromptToClipboard(this)">
+              <div class="prompt-tag">Optimización de Setups A+</div>
+              <p class="prompt-text">"¿Cuál de mis setups definidos en el Playbook tuvo la mayor tasa de acierto y mejor R:R promedio según los datos registrados en mi diario de trading?"</p>
+              <span class="click-copy-hint"><i class="fa-regular fa-copy"></i> Clic para copiar prompt</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
 
   </main>
 
