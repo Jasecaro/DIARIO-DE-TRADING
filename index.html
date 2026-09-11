@@ -388,7 +388,10 @@
           </div>
         </div>
         <div class="dash-accounts-actions">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="promptAddQuickAccount()" title="Agregar nueva cuenta de fondeo">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openAccountsManagerModal()" title="Administrar y unificar cuentas de fondeo">
+            <i class="fa-solid fa-gear"></i> Administrar Cuentas
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="promptAddQuickAccount()" title="Agregar nueva cuenta de fondeo">
             <i class="fa-solid fa-plus"></i> Nueva Cuenta
           </button>
         </div>
@@ -515,9 +518,14 @@
               Control independiente y comparativa de rentabilidad, drawdown y estadísticas de cada cuenta.
             </p>
           </div>
-          <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); font-weight: 700;" id="accounts-count-badge">
-            3 Cuentas Activas
-          </span>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openAccountsManagerModal()" title="Administrar y unificar cuentas">
+              <i class="fa-solid fa-gear"></i> Administrar Cuentas
+            </button>
+            <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); font-weight: 700;" id="accounts-count-badge">
+              3 Cuentas Activas
+            </span>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="custom-table accounts-comparison-table">
@@ -641,13 +649,14 @@
                 </button>
               </div>
 
-              <!-- Fast Quick Selector Badges -->
-              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                <span style="font-size: 0.78rem; color: var(--text-muted); align-self: center;">Agregar Rápido:</span>
-                <span class="chip" onclick="quickAddAccount('FTMO 100K')">+ FTMO 100K</span>
-                <span class="chip" onclick="quickAddAccount('Apex 50K')">+ Apex 50K</span>
-                <span class="chip" onclick="quickAddAccount('FundedNext 100K')">+ FundedNext 100K</span>
-                <span class="chip" onclick="quickAddAccount('MyFundedFX 50K')">+ MyFundedFX 50K</span>
+              <!-- Dynamic User Accounts Selector Badges -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;" id="session-available-accounts-chips">
+                  <!-- Rendered dynamically from user's registered accounts -->
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openAccountsManagerModal()" style="font-size: 0.75rem; padding: 3px 10px;">
+                  <i class="fa-solid fa-gear"></i> Administrar Cuentas
+                </button>
               </div>
 
               <!-- Active Accounts Container -->
@@ -2053,6 +2062,32 @@ Por ejemplo:
         <button type="button" class="btn btn-secondary" onclick="dismissMigrationModal()">
           No por ahora
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMINISTRADOR Y UNIFICADOR DE CUENTAS DE FONDEO -->
+  <div class="modal-backdrop" id="accounts-manager-modal">
+    <div class="modal-content" style="max-width: 760px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="logo-icon" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(79, 70, 229, 0.1); color: var(--accent-primary);">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <h3 class="card-title" style="margin: 0; font-size: 1.2rem;">Administrar Cuentas de Fondeo</h3>
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Unifica nombres duplicados, renombra o elimina cuentas que no utilices</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeAccountsManagerModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" id="accounts-manager-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeAccountsManagerModal()">Cerrar</button>
       </div>
     </div>
   </div>
