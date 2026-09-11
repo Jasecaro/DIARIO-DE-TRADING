@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
   initMarketSessionsClock();
   initMindsetQuotes();
+  initSidebarState();
 });
 
 // Load / Save LocalStorage
@@ -132,11 +133,21 @@ function switchTab(tabId) {
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-  const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.getAttribute('onclick')?.includes(`'${tabId}'`));
-  if (activeBtn) activeBtn.classList.add('active');
+  // Highlight all matching buttons (in sidebar nav or quick actions)
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    if (btn.getAttribute('onclick')?.includes(`'${tabId}'`)) {
+      btn.classList.add('active');
+    }
+  });
 
   const targetContent = document.getElementById(`tab-${tabId}`);
   if (targetContent) targetContent.classList.add('active');
+
+  // Dynamically update Topbar title and breadcrumb
+  updateTopbarTitle(tabId);
+
+  // Auto-close mobile drawer if opened
+  closeSidebarMobile();
 
   if (tabId === 'home') {
     renderHomeMetrics();
@@ -150,6 +161,78 @@ function switchTab(tabId) {
     populateSessionSelect();
     generateNotebookLMReport();
   }
+}
+
+// Update Topbar Title & Subtitle dynamically
+function updateTopbarTitle(tabId) {
+  const titleEl = document.getElementById('topbar-title');
+  const subEl = document.getElementById('topbar-subtitle');
+  if (!titleEl) return;
+
+  const meta = {
+    'home': { title: 'Inicio Hub', subtitle: 'Centro de Mando & Reloj de Mercado' },
+    'dashboard': { title: 'Dashboard', subtitle: 'Métricas Globales, Calendario P&L y Cuentas' },
+    'new-session': { title: 'Nueva Sesión', subtitle: 'Registro Paso a Paso de Operativa' },
+    'history': { title: 'Historial', subtitle: 'Auditoría, Búsqueda y Filtro de Sesiones' },
+    'strategy': { title: 'Estrategia IA', subtitle: 'Playbook de Reglas y Criterios de Entrada' },
+    'notebooklm': { title: 'Reportes NotebookLM', subtitle: 'Generador de Informes Analíticos' }
+  };
+
+  const current = meta[tabId] || { title: 'Trading Journal', subtitle: 'Diario Profesional' };
+  titleEl.textContent = current.title;
+  if (subEl) subEl.textContent = current.subtitle;
+}
+
+// Sidebar Drawer Controls (Mobile)
+function toggleSidebarMobile() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (!sidebar) return;
+  const isOpen = sidebar.classList.contains('mobile-open');
+  if (isOpen) {
+    closeSidebarMobile();
+  } else {
+    sidebar.classList.add('mobile-open');
+    if (backdrop) backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSidebarMobile() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Sidebar Desktop Collapse Toggle
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('app-sidebar');
+  if (!sidebar) return;
+  sidebar.classList.toggle('collapsed');
+  const isCollapsed = sidebar.classList.contains('collapsed');
+  localStorage.setItem('journal_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+}
+
+function initSidebarState() {
+  const isCollapsed = localStorage.getItem('journal_sidebar_collapsed') === 'true';
+  const sidebar = document.getElementById('app-sidebar');
+  if (sidebar && isCollapsed) {
+    sidebar.classList.add('collapsed');
+  }
+
+  // Live topbar clock
+  updateTopbarClock();
+  setInterval(updateTopbarClock, 1000);
+}
+
+function updateTopbarClock() {
+  const clockEl = document.getElementById('topbar-live-clock');
+  if (!clockEl) return;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('es-CL', { hour12: false });
+  clockEl.textContent = timeStr;
 }
 
 // Phase Wizard Stepper (1 -> 2 -> 3)

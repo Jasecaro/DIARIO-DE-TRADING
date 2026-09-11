@@ -24,98 +24,175 @@
 </head>
 <body>
 
-  <!-- Header Navigation -->
-  <header>
-    <div class="header-container">
-      <a href="#" class="logo" onclick="switchTab('home'); return false;">
-        <div class="logo-icon">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
-        <div>
-          <span>TRADING JOURNAL</span>
-          <span class="logo-tag">PRO</span>
-        </div>
-      </a>
+  <!-- App Layout Wrapper -->
+  <div class="app-layout" id="app-layout">
 
-      <nav>
-        <button class="nav-btn active" id="nav-btn-home" onclick="switchTab('home')">
-          <i class="fa-solid fa-house"></i> Inicio
-        </button>
-        <button class="nav-btn" id="nav-btn-dashboard" onclick="switchTab('dashboard')">
-          <i class="fa-solid fa-gauge-high"></i> Dashboard
-        </button>
-        <button class="nav-btn" id="nav-btn-new-session" onclick="switchTab('new-session')">
-          <i class="fa-solid fa-plus-circle"></i> Nueva Sesión
-        </button>
-        <button class="nav-btn" id="nav-btn-history" onclick="switchTab('history')">
-          <i class="fa-solid fa-clock-rotate-left"></i> Historial
-        </button>
-        <button class="nav-btn" id="nav-btn-strategy" onclick="switchTab('strategy')">
-          <i class="fa-solid fa-chess-knight"></i> Estrategia IA
-        </button>
-        <button class="nav-btn" id="nav-btn-notebooklm" onclick="switchTab('notebooklm')">
-          <i class="fa-solid fa-brain"></i> Reportes NotebookLM
-        </button>
-      </nav>
+    <!-- Mobile Drawer Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebarMobile()"></div>
 
-      <div class="header-actions">
+    <!-- Modern Sidebar Navigation (TradeZella Style) -->
+    <aside class="app-sidebar" id="app-sidebar">
+      
+      <!-- Sidebar Brand Header -->
+      <div class="sidebar-brand">
+        <a href="#" class="sidebar-logo" onclick="switchTab('home'); return false;">
+          <div class="logo-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div class="logo-text-group">
+            <span class="logo-title">TRADING JOURNAL</span>
+            <span class="logo-tag">PRO</span>
+          </div>
+        </a>
+        <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Colapsar / Expandir Menú">
+          <i class="fa-solid fa-chevron-left" id="collapse-icon"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action CTA -->
+      <div class="sidebar-cta-wrap">
+        <button type="button" class="sidebar-cta-btn" onclick="switchTab('new-session')" title="Iniciar Nueva Sesión">
+          <i class="fa-solid fa-plus"></i>
+          <span>Nueva Sesión</span>
+        </button>
+      </div>
+
+      <!-- Navigation Links Container -->
+      <div class="sidebar-nav-container">
+        
+        <div class="sidebar-nav-group">
+          <div class="sidebar-group-title">Operativa & Control</div>
+          <nav class="sidebar-nav">
+            <button class="nav-btn active" id="nav-btn-home" onclick="switchTab('home')" title="Inicio Hub">
+              <i class="fa-solid fa-house"></i>
+              <span class="nav-btn-label">Inicio</span>
+            </button>
+            <button class="nav-btn" id="nav-btn-dashboard" onclick="switchTab('dashboard')" title="Dashboard & Calendario P&L">
+              <i class="fa-solid fa-gauge-high"></i>
+              <span class="nav-btn-label">Dashboard</span>
+            </button>
+            <button class="nav-btn" id="nav-btn-new-session" onclick="switchTab('new-session')" title="Nueva Sesión de Trading">
+              <i class="fa-solid fa-circle-plus"></i>
+              <span class="nav-btn-label">Nueva Sesión</span>
+            </button>
+            <button class="nav-btn" id="nav-btn-history" onclick="switchTab('history')" title="Historial de Sesiones">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span class="nav-btn-label">Historial</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="sidebar-nav-group">
+          <div class="sidebar-group-title">Herramientas & IA</div>
+          <nav class="sidebar-nav">
+            <button class="nav-btn" id="nav-btn-strategy" onclick="switchTab('strategy')" title="Estrategia IA Playbook">
+              <i class="fa-solid fa-chess-knight"></i>
+              <span class="nav-btn-label">Estrategia IA</span>
+            </button>
+            <button class="nav-btn" id="nav-btn-notebooklm" onclick="switchTab('notebooklm')" title="Reportes NotebookLM">
+              <i class="fa-solid fa-brain"></i>
+              <span class="nav-btn-label">Reportes NotebookLM</span>
+            </button>
+            <button class="nav-btn sidebar-paper-btn" onclick="openPaperTemplate()" title="Plantilla para Imprimir en Papel (Lápiz)">
+              <i class="fa-solid fa-print"></i>
+              <span class="nav-btn-label">Plantilla Papel</span>
+            </button>
+          </nav>
+        </div>
+
+      </div>
+
+      <!-- Sidebar Footer / User Profile & Utilities -->
+      <div class="sidebar-footer">
+        
         <!-- Cloud Auth Widget -->
-        <div id="auth-status-container" class="auth-status-container">
-          <button type="button" id="btn-open-login" class="btn btn-primary btn-sm btn-glow" onclick="openAuthModal('login')">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Iniciar Sesión
+        <div id="auth-status-container" class="sidebar-user-card">
+          <!-- Button when logged out -->
+          <button type="button" id="btn-open-login" class="btn btn-primary btn-sm btn-glow sidebar-login-btn" onclick="openAuthModal('login')">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Iniciar Sesión</span>
           </button>
           
-          <div id="user-logged-box" class="user-logged-box" style="display: none;">
-            <div class="user-badge" id="user-email-badge" title="Cuenta activa y sincronizada en Supabase Cloud">
-              <span class="cloud-dot"></span>
-              <span class="email-text" id="user-email-text">usuario@email.com</span>
+          <!-- Box when logged in -->
+          <div id="user-logged-box" class="sidebar-user-logged" style="display: none;">
+            <div class="sidebar-user-info" id="user-email-badge" title="Cuenta activa y sincronizada en Supabase Cloud">
+              <div class="user-avatar-circle">
+                <i class="fa-solid fa-user"></i>
+                <span class="cloud-dot"></span>
+              </div>
+              <div class="user-meta">
+                <span class="email-text" id="user-email-text">usuario@email.com</span>
+                <span class="user-subtext">Supabase Cloud <i class="fa-solid fa-circle-check"></i></span>
+              </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="handleLogout()" title="Cerrar sesión">
+            <button type="button" class="sidebar-logout-btn" onclick="handleLogout()" title="Cerrar sesión">
               <i class="fa-solid fa-right-from-bracket"></i>
             </button>
           </div>
         </div>
 
-        <!-- Botón rápido Plantilla Papel -->
-        <button class="btn btn-secondary btn-sm header-print-btn" onclick="openPaperTemplate()" title="Plantilla para Imprimir en Papel (Lápiz)">
-          <i class="fa-solid fa-print"></i> Papel
-        </button>
-
-        <!-- Botón Modo Oscuro / Claro -->
-        <button type="button" id="theme-toggle-btn" class="btn btn-secondary btn-sm theme-toggle-btn" onclick="toggleTheme()" title="Cambiar a Modo Oscuro / Claro">
-          <i class="fa-solid fa-moon" id="theme-icon"></i>
-        </button>
-
-        <!-- Dropdown Descongestionado de Opciones Rápidas -->
-        <div class="header-dropdown-wrap">
-          <button type="button" class="btn btn-secondary btn-sm dropdown-trigger" onclick="toggleHeaderToolsMenu(event)" title="Opciones de datos y utilidades">
-            <i class="fa-solid fa-ellipsis-vertical"></i>
+        <!-- Utility Actions Bar (Theme Toggle & Tools Dropdown) -->
+        <div class="sidebar-utilities-row">
+          <button type="button" id="theme-toggle-btn" class="btn btn-secondary btn-sm theme-toggle-btn" onclick="toggleTheme()" title="Cambiar a Modo Oscuro / Claro">
+            <i class="fa-solid fa-moon" id="theme-icon"></i>
+            <span class="theme-toggle-text">Tema</span>
           </button>
-          <div class="header-dropdown-menu" id="header-tools-menu">
-            <div class="dropdown-header">Respaldo de Datos</div>
-            <button type="button" class="dropdown-item" onclick="exportBackupJSON(); closeHeaderToolsMenu();">
-              <i class="fa-solid fa-download"></i> Exportar Backup JSON
+
+          <!-- Dropdown Descongestionado de Opciones Rápidas -->
+          <div class="header-dropdown-wrap">
+            <button type="button" class="btn btn-secondary btn-sm dropdown-trigger" onclick="toggleHeaderToolsMenu(event)" title="Opciones de datos y utilidades">
+              <i class="fa-solid fa-ellipsis"></i>
             </button>
-            <button type="button" class="dropdown-item" onclick="triggerImportBackup(); closeHeaderToolsMenu();">
-              <i class="fa-solid fa-upload"></i> Importar Backup JSON
-            </button>
-            <div class="dropdown-divider"></div>
-            <div class="dropdown-header">Entorno de Pruebas</div>
-            <button type="button" class="dropdown-item text-info" onclick="loadDemoData(); closeHeaderToolsMenu();">
-              <i class="fa-solid fa-vial"></i> Cargar Datos Demo
-            </button>
-            <button type="button" class="dropdown-item text-danger" onclick="clearDemoData(); closeHeaderToolsMenu();">
-              <i class="fa-solid fa-trash-can"></i> Limpiar Datos Demo
-            </button>
+            <div class="header-dropdown-menu" id="header-tools-menu">
+              <div class="dropdown-header">Respaldo de Datos</div>
+              <button type="button" class="dropdown-item" onclick="exportBackupJSON(); closeHeaderToolsMenu();">
+                <i class="fa-solid fa-download"></i> Exportar Backup JSON
+              </button>
+              <button type="button" class="dropdown-item" onclick="triggerImportBackup(); closeHeaderToolsMenu();">
+                <i class="fa-solid fa-upload"></i> Importar Backup JSON
+              </button>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-header">Entorno de Pruebas</div>
+              <button type="button" class="dropdown-item text-info" onclick="loadDemoData(); closeHeaderToolsMenu();">
+                <i class="fa-solid fa-vial"></i> Cargar Datos Demo
+              </button>
+              <button type="button" class="dropdown-item text-danger" onclick="clearDemoData(); closeHeaderToolsMenu();">
+                <i class="fa-solid fa-trash-can"></i> Limpiar Datos Demo
+              </button>
+            </div>
+          </div>
+          <input type="file" id="backup-file-input" accept=".json" style="display: none;" onchange="importBackupJSON(event)">
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Main Content Area Wrapper -->
+    <div class="app-main-wrapper">
+      
+      <!-- Slim Top Bar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button type="button" class="topbar-mobile-toggle" onclick="toggleSidebarMobile()" title="Abrir Menú">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="topbar-view-info">
+            <h1 class="topbar-title" id="topbar-title">Inicio</h1>
+            <span class="topbar-subtitle" id="topbar-subtitle">Centro de Mando & Reloj de Mercado</span>
           </div>
         </div>
-        <input type="file" id="backup-file-input" accept=".json" style="display: none;" onchange="importBackupJSON(event)">
-      </div>
-    </div>
-  </header>
 
-  <!-- Main Application Container -->
-  <main class="app-container">
+        <div class="topbar-right">
+          <div class="topbar-clock-badge" id="topbar-clock-badge" title="Hora Local del Sistema">
+            <i class="fa-regular fa-clock"></i>
+            <span id="topbar-live-clock">--:--:--</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Application Container -->
+      <main class="app-container">
 
     <!-- TAB 0: PORTADA / HOME HUB -->
     <section id="tab-home" class="tab-content active">
@@ -1408,6 +1485,8 @@ Por ejemplo:
     </section>
 
   </main>
+    </div> <!-- /.app-main-wrapper -->
+  </div> <!-- /.app-layout -->
 
   <!-- MODAL: ADD / EDIT LIVE TRADE -->
   <div class="modal-backdrop" id="trade-modal">
