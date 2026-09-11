@@ -19,7 +19,8 @@ let state = {
   equityChart: null,
   errorsChart: null,
   currentSessionAccounts: ['FTMO 100K', 'Apex 50K #1', 'Apex 50K #2'],
-  currentSessionAccountRisks: { 'FTMO 100K': 1000, 'Apex 50K #1': 500, 'Apex 50K #2': 500 }
+  currentSessionAccountRisks: { 'FTMO 100K': 1000, 'Apex 50K #1': 500, 'Apex 50K #2': 500 },
+  noTradesMode: false
 };
 
 const LOCAL_STORAGE_KEY = 'TRADING_JOURNAL_PRO_DATA_V1';
@@ -276,12 +277,49 @@ function toggleRiskPerAccountBox() {
   if (box) box.style.display = checked ? 'block' : 'none';
 }
 
+// Helpers para Hora y Cálculo de Puntos Técnicos en Trade Modal
+function setTradeModalCurrentTime() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const timeInput = document.getElementById('modal-trade-time');
+  if (timeInput) timeInput.value = `${hh}:${mm}`;
+}
+
+function calculatePointsDifference() {
+  const entryInput = document.getElementById('modal-entry-price');
+  const exitInput = document.getElementById('modal-exit-price');
+  const dirInput = document.getElementById('modal-direction');
+  const badge = document.getElementById('modal-points-badge');
+  if (!badge) return;
+
+  const entryVal = parseFloat(entryInput ? entryInput.value : '');
+  const exitVal = parseFloat(exitInput ? exitInput.value : '');
+  const direction = dirInput ? dirInput.value : 'LONG';
+
+  if (!isNaN(entryVal) && !isNaN(exitVal) && entryVal > 0 && exitVal > 0) {
+    const diff = direction === 'LONG' ? (exitVal - entryVal) : (entryVal - exitVal);
+    const sign = diff > 0 ? '+' : '';
+    badge.innerText = `${sign}${diff.toFixed(2)} pts`;
+    badge.style.display = 'inline-block';
+    badge.classList.remove('points-positive', 'points-negative');
+    badge.classList.add(diff >= 0 ? 'points-positive' : 'points-negative');
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 // Live Trade Modal Logic
 function openTradeModal(editIndex = -1) {
   state.editingTradeIndex = editIndex;
   const modal = document.getElementById('trade-modal');
   const modalTitle = document.getElementById('trade-modal-title');
   const form = document.getElementById('trade-form');
+
+  // Si estaba en modo "No hubo entradas", desactivarlo para dar paso al trade
+  if (state.noTradesMode) {
+    toggleNoTradesMode(false);
+  }
 
   // Populate trade account selector
   const accSelect = document.getElementById('modal-trade-account');
@@ -293,7 +331,6 @@ function openTradeModal(editIndex = -1) {
     accSelect.innerHTML = accOptions;
   }
 
-
   // Reset image preview
   removeImagePreview();
 
@@ -302,6 +339,9 @@ function openTradeModal(editIndex = -1) {
     const trade = state.currentDraftTrades[editIndex];
     document.getElementById('modal-asset').value = trade.asset;
     document.getElementById('modal-direction').value = trade.direction;
+    document.getElementById('modal-trade-time').value = trade.time || '';
+    document.getElementById('modal-entry-price').value = (trade.entryPrice !== undefined && trade.entryPrice !== null) ? trade.entryPrice : '';
+    document.getElementById('modal-exit-price').value = (trade.exitPrice !== undefined && trade.exitPrice !== null) ? trade.exitPrice : '';
     document.getElementById('modal-lots').value = trade.lots;
     document.getElementById('modal-pnl').value = trade.pnl;
     document.getElementById('modal-rr').value = trade.rr;
@@ -309,6 +349,8 @@ function openTradeModal(editIndex = -1) {
     document.getElementById('modal-chart-url').value = trade.chartUrl || '';
     document.getElementById('modal-trade-notes').value = trade.notes || '';
     document.getElementById('modal-trade-tags').value = trade.tags || '';
+
+    calculatePointsDifference();
 
     if (trade.chartImage) {
       setImagePreview(trade.chartImage);
@@ -328,6 +370,11 @@ function openTradeModal(editIndex = -1) {
   } else {
     modalTitle.innerHTML = '<i class="fa-solid fa-chart-line"></i> Registrar Trade en Vivo';
     form.reset();
+    setTradeModalCurrentTime();
+    document.getElementById('modal-entry-price').value = '';
+    document.getElementById('modal-exit-price').value = '';
+    calculatePointsDifference();
+
     document.getElementById('modal-lots').value = '1.0';
     document.getElementById('modal-pnl').value = '350.00';
     document.getElementById('modal-rr').value = '2.5';
@@ -359,7 +406,7 @@ function toggleTradeChip(element) {
   document.getElementById('modal-trade-tags').value = selected.join(', ');
 }
 
-// Screenshot & Image Handling (File Upload, Drag & Drop, Clipboard Paste)
+// Screenshot & Image Handling for Trade Modal
 function handleFileSelect(event) {
   const file = event.target.files[0];
   if (file) {
@@ -376,7 +423,6 @@ function processImageFile(file) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      // Compress image to max 1600px width/height and 0.8 JPEG quality
       const maxDim = 1600;
       let width = img.width;
       let height = img.height;
@@ -397,7 +443,6 @@ function processImageFile(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to JPEG with 0.8 quality (80-90% size reduction)
       const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
       setImagePreview(compressedBase64);
       showToast('Pantallazo cargado y optimizado correctamente', 'success');
@@ -424,18 +469,144 @@ function removeImagePreview() {
   document.getElementById('upload-prompt-content').style.display = 'flex';
 }
 
-// Global Clipboard Paste (Ctrl+V) listener when modal is open
+// =============================================================================
+// GESTIÓN DE SESIÓN SIN OPERACIONES (DÍA DE PACIENCIA / NO HUBO ENTRADAS)
+// =============================================================================
+function toggleNoTradesMode(enable) {
+  state.noTradesMode = enable;
+  const noTradesCard = document.getElementById('no-trades-card');
+  const tradesContainer = document.getElementById('trades-table-container');
+  const btnToggle = document.getElementById('btn-toggle-no-trades');
+
+  if (enable) {
+    if (noTradesCard) noTradesCard.style.display = 'block';
+    if (tradesContainer) tradesContainer.style.display = 'none';
+    if (btnToggle) btnToggle.classList.add('active');
+
+    // Reset draft trades if any
+    state.currentDraftTrades = [];
+    document.getElementById('current-session-pnl').innerText = '$0.00';
+    document.getElementById('current-session-pnl').style.color = 'var(--accent-primary)';
+    document.getElementById('current-session-count').innerText = '0';
+
+    // Auto set adherence and discipline in Phase 3
+    const adherenceEl = document.getElementById('session-adherence');
+    if (adherenceEl) adherenceEl.value = '100% - Ejecución Perfecta según el plan';
+    const discEl = document.getElementById('session-discipline-score');
+    if (discEl) {
+      discEl.value = '10';
+      const discVal = document.getElementById('discipline-val');
+      if (discVal) discVal.innerText = '10';
+    }
+
+    showToast('Sesión marcada: No hubo entradas (Día de Paciencia)', 'info');
+  } else {
+    if (noTradesCard) noTradesCard.style.display = 'none';
+    if (tradesContainer) tradesContainer.style.display = 'block';
+    if (btnToggle) btnToggle.classList.remove('active');
+    renderDraftTradesTable();
+  }
+}
+
+function selectNoTradeReason(element, reason) {
+  document.querySelectorAll('#no-trade-reasons-chips .chip').forEach(c => c.classList.remove('selected'));
+  element.classList.add('selected');
+  const input = document.getElementById('session-no-trade-reason');
+  if (input) input.value = reason;
+}
+
+function handleSessionChartFile(event) {
+  const file = event.target.files[0];
+  if (file) {
+    processSessionImageFile(file);
+  }
+}
+
+function processSessionImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showToast('Por favor selecciona un archivo de imagen válido', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 1600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      setSessionChartPreview(compressedBase64);
+      showToast('Gráfico de la sesión cargado y optimizado', 'success');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setSessionChartPreview(base64Src) {
+  const hiddenInput = document.getElementById('session-chart-base64');
+  if (hiddenInput) hiddenInput.value = base64Src;
+  const previewImg = document.getElementById('session-chart-preview-img');
+  if (previewImg) previewImg.src = base64Src;
+  const wrapper = document.getElementById('session-chart-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'block';
+  const prompt = document.getElementById('session-upload-prompt');
+  if (prompt) prompt.style.display = 'none';
+}
+
+function removeSessionChartPreview() {
+  const hiddenInput = document.getElementById('session-chart-base64');
+  if (hiddenInput) hiddenInput.value = '';
+  const fileInput = document.getElementById('session-chart-file');
+  if (fileInput) fileInput.value = '';
+  const previewImg = document.getElementById('session-chart-preview-img');
+  if (previewImg) previewImg.src = '';
+  const wrapper = document.getElementById('session-chart-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'none';
+  const prompt = document.getElementById('session-upload-prompt');
+  if (prompt) prompt.style.display = 'flex';
+}
+
+// Global Clipboard Paste (Ctrl+V) listener para Modal de Trades y Sesión sin entradas
 document.addEventListener('paste', (event) => {
-  const modal = document.getElementById('trade-modal');
-  if (!modal || !modal.classList.contains('active')) return;
+  const tradeModal = document.getElementById('trade-modal');
+  const isTradeModalOpen = tradeModal && tradeModal.classList.contains('active');
+
+  const step2 = document.getElementById('step-content-2');
+  const isStep2Open = step2 && step2.style.display !== 'none';
+  const isNoTradesActive = state.noTradesMode;
+
+  if (!isTradeModalOpen && !(isStep2Open && isNoTradesActive)) return;
 
   const items = (event.clipboardData || event.originalEvent.clipboardData).items;
   for (let index in items) {
     const item = items[index];
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       const blob = item.getAsFile();
-      processImageFile(blob);
-      showToast('¡Pantallazo pegado desde el portapapeles!', 'success');
+      if (isTradeModalOpen) {
+        processImageFile(blob);
+        showToast('¡Pantallazo del trade pegado desde el portapapeles!', 'success');
+      } else if (isStep2Open && isNoTradesActive) {
+        processSessionImageFile(blob);
+        showToast('¡Gráfico de la sesión pegado desde el portapapeles!', 'success');
+      }
       break;
     }
   }
@@ -455,10 +626,22 @@ function closeLightbox() {
 function saveTradeFromModal(event) {
   event.preventDefault();
   
+  const entryVal = parseFloat(document.getElementById('modal-entry-price')?.value);
+  const exitVal = parseFloat(document.getElementById('modal-exit-price')?.value);
+  const dir = document.getElementById('modal-direction').value;
+  let pointsDiff = null;
+  if (!isNaN(entryVal) && !isNaN(exitVal) && entryVal > 0 && exitVal > 0) {
+    pointsDiff = dir === 'LONG' ? (exitVal - entryVal) : (entryVal - exitVal);
+  }
+
   const tradeData = {
-    id: Date.now(),
+    id: (state.editingTradeIndex >= 0 && state.currentDraftTrades[state.editingTradeIndex]) ? state.currentDraftTrades[state.editingTradeIndex].id : Date.now(),
+    time: document.getElementById('modal-trade-time')?.value || '',
+    entryPrice: !isNaN(entryVal) ? entryVal : null,
+    exitPrice: !isNaN(exitVal) ? exitVal : null,
+    points: pointsDiff,
     asset: document.getElementById('modal-asset').value.trim(),
-    direction: document.getElementById('modal-direction').value,
+    direction: dir,
     lots: parseFloat(document.getElementById('modal-lots').value) || 1,
     pnl: parseFloat(document.getElementById('modal-pnl').value) || 0,
     rr: parseFloat(document.getElementById('modal-rr').value) || 0,
@@ -469,10 +652,9 @@ function saveTradeFromModal(event) {
     notes: document.getElementById('modal-trade-notes').value.trim()
   };
 
-
   if (state.editingTradeIndex >= 0) {
     state.currentDraftTrades[state.editingTradeIndex] = tradeData;
-    showToast('Trade actualizado', 'success');
+    showToast('Trade actualizado correctamente', 'success');
   } else {
     state.currentDraftTrades.push(tradeData);
     showToast('Trade agregado a la sesión', 'success');
@@ -485,7 +667,7 @@ function saveTradeFromModal(event) {
 function deleteDraftTrade(index) {
   state.currentDraftTrades.splice(index, 1);
   renderDraftTradesTable();
-  showToast('Trade eliminado de la borrador', 'info');
+  showToast('Trade eliminado del borrador', 'info');
 }
 
 function renderDraftTradesTable() {
@@ -495,10 +677,20 @@ function renderDraftTradesTable() {
   if (state.currentDraftTrades.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-state">
-          <i class="fa-solid fa-chart-bar empty-icon"></i>
-          <p>No has registrado trades en esta sesión aún.</p>
-          <button type="button" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;" onclick="openTradeModal()">+ Agregar Primer Trade</button>
+        <td colspan="12" class="empty-state" style="padding: 2.5rem 1.5rem;">
+          <i class="fa-solid fa-chart-line empty-icon" style="font-size: 2.5rem; color: var(--accent-primary); margin-bottom: 0.75rem;"></i>
+          <h4 style="color: var(--text-main); margin-bottom: 0.25rem;">Sin operaciones registradas en esta sesión</h4>
+          <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 480px; margin: 0 auto 1.25rem auto;">
+            ¿Abriste posiciones hoy o el mercado no cumplió las reglas de tu estrategia? Elige una opción:
+          </p>
+          <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" onclick="openTradeModal()">
+              <i class="fa-solid fa-plus"></i> + Agregar Trade en Vivo
+            </button>
+            <button type="button" class="btn btn-secondary btn-no-trades" onclick="toggleNoTradesMode(true)">
+              <i class="fa-solid fa-shield-halved"></i> No Hubo Entradas Hoy (Subir Gráfico)
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -520,11 +712,25 @@ function renderDraftTradesTable() {
       <a href="${t.chartUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Abrir URL Gráfico"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
     ` : '-');
 
+    let priceHtml = '-';
+    if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
+      const ptsBadge = t.points !== null && t.points !== undefined ? `
+        <span class="badge ${t.points >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 0.68rem; padding: 1px 5px; margin-left: 4px;">
+          ${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts
+        </span>
+      ` : '';
+      priceHtml = `<div style="font-size: 0.8rem; white-space: nowrap;"><strong>${t.entryPrice}</strong> ➔ <strong>${t.exitPrice}</strong>${ptsBadge}</div>`;
+    } else if (t.entryPrice !== null && t.entryPrice !== undefined) {
+      priceHtml = `<span style="font-size: 0.8rem;">Entrada: <strong>${t.entryPrice}</strong></span>`;
+    }
+
     return `
       <tr>
         <td><strong>#${idx + 1}</strong></td>
+        <td><span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span></td>
         <td><strong>${t.asset}</strong></td>
         <td><span class="badge ${dirClass}">${t.direction}</span></td>
+        <td>${priceHtml}</td>
         <td>${t.lots} Lotes</td>
         <td>${t.setup}</td>
         <td>${imageHtml}</td>
@@ -538,7 +744,6 @@ function renderDraftTradesTable() {
       </tr>
     `;
   }).join('');
-
 
   const pnlEl = document.getElementById('current-session-pnl');
   pnlEl.innerText = `$${totalPnl.toFixed(2)}`;
@@ -573,6 +778,12 @@ function handleSaveSession(event) {
     const mistakesInput = document.getElementById('session-mistakes');
     const takeawayInput = document.getElementById('session-takeaway');
 
+    const isNoTrades = state.noTradesMode;
+    const noTradeReason = document.getElementById('session-no-trade-reason')?.value || 'Mercado en Consolidación / Rango sucio';
+    const sessionChartImg = document.getElementById('session-chart-base64')?.value || '';
+    const sessionChartUrl = document.getElementById('session-chart-url')?.value.trim() || '';
+    const sessionNoTradeNotes = document.getElementById('session-no-trade-notes')?.value.trim() || '';
+
     const session = {
       id: 'session_' + Date.now(),
       date: dateInput?.value || new Date().toISOString().split('T')[0],
@@ -589,8 +800,20 @@ function handleSaveSession(event) {
       checklist: {
         news: checkNewsInput ? checkNewsInput.checked : false,
         levels: checkLevelsInput ? checkLevelsInput.checked : false,
-        acceptLoss: checkAcceptLossInput ? checkAcceptLossInput.checked : false
+        acceptLoss: checkAcceptLossInput ? checkAcceptLossInput.checked : false,
+        noTradeSession: isNoTrades ? {
+          noTrades: true,
+          reason: noTradeReason,
+          chartImage: sessionChartImg,
+          chartUrl: sessionChartUrl,
+          notes: sessionNoTradeNotes
+        } : null
       },
+      noTrades: isNoTrades,
+      noTradeReason: isNoTrades ? noTradeReason : null,
+      sessionChartImage: isNoTrades ? sessionChartImg : null,
+      sessionChartUrl: isNoTrades ? sessionChartUrl : null,
+      noTradeNotes: isNoTrades ? sessionNoTradeNotes : null,
       folioMaestro: {
         noDo: [
           document.getElementById('session-nodo-1')?.value.trim() || '',
@@ -617,12 +840,12 @@ function handleSaveSession(event) {
           }
         ].filter(p => p.feel || p.do)
       },
-      trades: state.currentDraftTrades ? [...state.currentDraftTrades] : [],
+      trades: isNoTrades ? [] : (state.currentDraftTrades ? [...state.currentDraftTrades] : []),
       adherence: adherenceInput?.value || '100% - Ejecución Perfecta según el plan',
-      disciplineScore: parseInt(disciplineInput?.value) || 9,
-      mistakes: mistakesInput?.value || '',
-      takeaway: takeawayInput?.value || '',
-      netPnl: state.currentDraftTrades ? state.currentDraftTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) : 0
+      disciplineScore: parseInt(disciplineInput?.value) || (isNoTrades ? 10 : 9),
+      mistakes: isNoTrades ? (mistakesInput?.value || 'Ninguno (Plan Seguido)') : (mistakesInput?.value || ''),
+      takeaway: takeawayInput?.value || (isNoTrades ? (sessionNoTradeNotes || 'Día de Paciencia y preservación de capital. Sin operaciones ejecutadas según el plan.') : ''),
+      netPnl: isNoTrades ? 0 : (state.currentDraftTrades ? state.currentDraftTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) : 0)
     };
 
     if (!state.sessions) state.sessions = [];
@@ -638,7 +861,7 @@ function handleSaveSession(event) {
     ['session-nodo-1', 'session-nodo-2', 'session-nodo-3', 'session-improve',
      'session-ifthen-feel-1', 'session-ifthen-do-1', 'session-ifthen-feel-2', 'session-ifthen-do-2',
      'session-ifthen-feel-3', 'session-ifthen-do-3', 'session-ifthen-feel-4', 'session-ifthen-do-4',
-     'session-takeaway'].forEach(id => {
+     'session-takeaway', 'session-no-trade-notes', 'session-chart-url'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -647,7 +870,9 @@ function handleSaveSession(event) {
     document.querySelectorAll('#mistakes-chips .chip').forEach(c => c.classList.remove('selected'));
     if (mistakesInput) mistakesInput.value = '';
 
-    // Reset Draft
+    // Reset No Trades State & Draft
+    removeSessionChartPreview();
+    toggleNoTradesMode(false);
     state.currentDraftTrades = [];
     renderDraftTradesTable();
     goToStep(1);
@@ -974,13 +1199,43 @@ function renderHistory() {
           </div>
         ` : ''}
 
-        ${s.trades && s.trades.length > 0 ? `
+        ${(s.noTrades || s.checklist?.noTradeSession?.noTrades) ? `
+          <div class="no-trade-history-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+              <span class="badge-no-trades"><i class="fa-solid fa-shield-halved"></i> DÍA DE PACIENCIA • SIN OPERACIONES</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #0284c7;">Motivo: ${s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación / Rango sucio'}</span>
+            </div>
+            ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
+              <div style="display: flex; gap: 1rem; align-items: center; margin: 0.75rem 0;">
+                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
+                  <img src="${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}" class="chart-thumbnail" style="width: 72px; height: 72px; border-radius: 8px;" onclick="openLightbox(this.src)" title="Ver pantallazo del gráfico de la sesión">
+                ` : ''}
+                <div style="flex: 1;">
+                  ${(s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
+                    <a href="${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl}" target="_blank" class="btn btn-secondary btn-sm" style="margin-bottom: 0.4rem; display: inline-flex; align-items: center; gap: 4px;">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Gráfico en TradingView
+                    </a>
+                  ` : ''}
+                  <div style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">
+                    "${s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Se preservó el capital al no presentarse ventajas claras en el mercado.'}"
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div style="font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-top: 0.4rem;">
+                "${s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Se preservó el capital al no presentarse ventajas claras en el mercado.'}"
+              </div>
+            `}
+          </div>
+        ` : (s.trades && s.trades.length > 0 ? `
           <div class="table-responsive">
             <table class="custom-table" style="font-size: 0.8rem;">
               <thead>
                 <tr>
+                  <th>Hora</th>
                   <th>Activo</th>
                   <th>Tipo</th>
+                  <th>Entrada ➔ Salida</th>
                   <th>Setup</th>
                   <th>Gráfico</th>
                   <th>P&L ($)</th>
@@ -996,10 +1251,20 @@ function renderHistory() {
                     <a href="${t.chartUrl}" target="_blank" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> URL</a>
                   ` : '-');
 
+                  let priceStr = '-';
+                  if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
+                    const pts = t.points !== null && t.points !== undefined ? ` (${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts)` : '';
+                    priceStr = `${t.entryPrice} ➔ ${t.exitPrice}${pts}`;
+                  } else if (t.entryPrice !== null && t.entryPrice !== undefined) {
+                    priceStr = `${t.entryPrice}`;
+                  }
+
                   return `
                     <tr>
+                      <td><span style="color: var(--text-muted); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span></td>
                       <td><strong>${t.asset}</strong></td>
                       <td><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
+                      <td style="font-size: 0.78rem;">${priceStr}</td>
                       <td>${t.setup}</td>
                       <td>${imgBtn}</td>
                       <td><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
@@ -1009,10 +1274,9 @@ function renderHistory() {
                   `;
                 }).join('')}
               </tbody>
-
             </table>
           </div>
-        ` : '<p style="font-size: 0.8rem; color: var(--text-subtle);">No se registraron trades individuales en esta sesión.</p>'}
+        ` : '<p style="font-size: 0.8rem; color: var(--text-subtle);">No se registraron trades individuales en esta sesión.</p>')}
       </div>
     `;
   }).join('');
@@ -1226,45 +1490,93 @@ function buildDailyPersonalHTML(s) {
       </div>
     ` : ''}
 
-    <!-- Trades Table -->
-    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 0.75rem;">Operaciones Registradas</h3>
+    <!-- Trades Table or No-Trades Banner -->
+    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 0.75rem;">Operaciones & Ejecución</h3>
 
   `;
 
-  if (s.trades && s.trades.length > 0) {
+  if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
+    const sessionReason = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación / Sin ventaja estadística';
+    const sessionNotes = s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Se preservó el capital al no presentarse ventajas claras en el mercado.';
+    const sessionChart = s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
+
+    html += `
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h4 style="color: #15803d !important; margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-shield-halved"></i> SESIÓN SIN OPERACIONES • DÍA DE PACIENCIA Y PRESERVACIÓN
+          </h4>
+          <span class="badge badge-profit" style="font-size: 0.82rem; padding: 4px 10px;">Capital 100% Protegido</span>
+        </div>
+        <p style="color: #1e293b !important; font-size: 0.9rem; margin: 0.3rem 0;">
+          <strong>Motivo de No Operar:</strong> ${sessionReason}
+        </p>
+        <p style="color: #475569 !important; font-size: 0.85rem; font-style: italic; margin-top: 0.4rem;">
+          "${sessionNotes}"
+        </p>
+      </div>
+
+      ${sessionChart ? `
+        <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+            <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
+              📷 Captura del Gráfico de la Sesión (Análisis Técnico & Justificación)
+            </span>
+            <span class="badge badge-profit">0 Trades / Disciplina 10/10</span>
+          </div>
+          <div style="text-align: center;">
+            <img src="${sessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver fullscreen">
+          </div>
+        </div>
+      ` : ''}
+    `;
+  } else if (s.trades && s.trades.length > 0) {
     html += `
       <div class="table-responsive" style="margin-bottom: 1.5rem;">
         <table class="custom-table" style="background: #ffffff !important; border-collapse: collapse !important;">
           <thead>
             <tr style="background: #f8fafc !important;">
-              <th class="col-center col-col1" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">#</th>
-              <th class="col-left col-col2" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Activo</th>
-              <th class="col-center col-col3" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Dirección</th>
-              <th class="col-center col-col4" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Lotes</th>
-              <th class="col-left col-col5" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Estrategia</th>
-              <th class="col-right col-col6" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">P&L ($)</th>
-              <th class="col-center col-col7" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">R:R</th>
-              <th class="col-center col-col8" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Gráfico</th>
-              <th class="col-left col-col9" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Etiquetas / Notas</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">#</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Hora</th>
+              <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Activo</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Dirección</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Entrada ➔ Salida</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Lotes</th>
+              <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Estrategia</th>
+              <th class="col-right" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">P&L ($)</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">R:R</th>
+              <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Gráfico</th>
+              <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Etiquetas / Notas</th>
             </tr>
           </thead>
           <tbody>
-            ${s.trades.map((t, idx) => `
-              <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
-                <td class="col-center col-col1" style="color: #0f172a !important;"><strong>${idx + 1}</strong></td>
-                <td class="col-left col-col2" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
-                <td class="col-center col-col3"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
-                <td class="col-center col-col4" style="color: #0f172a !important;">${t.lots}</td>
-                <td class="col-left col-col5" style="color: #0f172a !important;">${t.setup}</td>
-                <td class="col-right col-col6"><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
-                <td class="col-center col-col7" style="color: #0f172a !important;">1:${t.rr}</td>
-                <td class="col-center col-col8">
-                  ${t.chartImage || t.chartUrl ? `<span style="color: #059669; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
-                </td>
+            ${s.trades.map((t, idx) => {
+              let priceStr = '-';
+              if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
+                const pts = t.points !== null && t.points !== undefined ? `<br><small class="badge ${t.points >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 0.68rem; padding: 1px 4px;">${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts</small>` : '';
+                priceStr = `<strong>${t.entryPrice}</strong> ➔ <strong>${t.exitPrice}</strong>${pts}`;
+              } else if (t.entryPrice !== null && t.entryPrice !== undefined) {
+                priceStr = `${t.entryPrice}`;
+              }
 
-                <td class="col-left col-col9" style="line-height: 1.4; color: #1e293b !important;">${t.tags || '-'} ${t.notes ? `<br><small style="color: #64748b !important;">${t.notes}</small>` : ''}</td>
-              </tr>
-            `).join('')}
+              return `
+                <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
+                  <td class="col-center" style="color: #0f172a !important;"><strong>${idx + 1}</strong></td>
+                  <td class="col-center" style="color: #64748b !important; font-size: 0.82rem; font-weight: 600;">${t.time || '--:--'}</td>
+                  <td class="col-left" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
+                  <td class="col-center"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
+                  <td class="col-center" style="font-size: 0.8rem;">${priceStr}</td>
+                  <td class="col-center" style="color: #0f172a !important;">${t.lots}</td>
+                  <td class="col-left" style="color: #0f172a !important;">${t.setup}</td>
+                  <td class="col-right"><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
+                  <td class="col-center" style="color: #0f172a !important;">1:${t.rr}</td>
+                  <td class="col-center">
+                    ${t.chartImage || t.chartUrl ? `<span style="color: #059669; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
+                  </td>
+                  <td class="col-left" style="line-height: 1.4; color: #1e293b !important;">${t.tags || '-'} ${t.notes ? `<br><small style="color: #64748b !important;">${t.notes}</small>` : ''}</td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -1282,7 +1594,7 @@ function buildDailyPersonalHTML(s) {
     </div>
   `;
 
-  // Chart Annex for Daily Report
+  // Chart Annex for Daily Report (only for trade-level charts)
   const tradesWithImages = s.trades ? s.trades.filter(t => t.chartImage || t.chartUrl) : [];
   if (tradesWithImages.length > 0) {
     html += `
@@ -1513,18 +1825,30 @@ function buildDailyMarkdown(s) {
   }
 
   md += `## 2. OPERACIONES EJECUTADAS (EN VIVO)\n`;
-  if (s.trades && s.trades.length > 0) {
-    md += `| # | Activo | Tipo | Lotes | Setup | P&L ($) | R:R | Captura Gráfico | Psicología / Notas |\n`;
-    md += `|---|---|---|---|---|---|---|---|---|\n`;
+  if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
+    const sessionReason = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación / Rango sucio';
+    const sessionNotes = s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Sin trades ejecutados según el plan.';
+    const imgRef = (s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? '[Pantallazo de la Sesión Adjunto]' : ((s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `[Link Gráfico](${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl})` : '-');
+
+    md += `### 🛡️ SESIÓN SIN OPERACIONES (DÍA DE PACIENCIA Y PRESERVACIÓN DE CAPITAL)\n`;
+    md += `- **Estado:** Capital 100% Protegido (0 Trades ejecutados)\n`;
+    md += `- **Motivo de No Operar:** ${sessionReason}\n`;
+    md += `- **Análisis Técnico / Observaciones:** ${sessionNotes}\n`;
+    md += `- **Captura del Gráfico:** ${imgRef}\n\n`;
+  } else if (s.trades && s.trades.length > 0) {
+    md += `| # | Hora | Activo | Tipo | Entrada | Salida | Pts/Pips | Lotes | Setup | P&L ($) | R:R | Captura Gráfico | Psicología / Notas |\n`;
+    md += `|---|---|---|---|---|---|---|---|---|---|---|---|---|\n`;
     s.trades.forEach((t, i) => {
       const imgRef = t.chartImage ? `[Pantallazo Adjunto]` : (t.chartUrl ? `[Link Gráfico](${t.chartUrl})` : '-');
-      md += `| ${i + 1} | ${t.asset} | ${t.direction} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
+      const entryStr = (t.entryPrice !== null && t.entryPrice !== undefined) ? t.entryPrice : '-';
+      const exitStr = (t.exitPrice !== null && t.exitPrice !== undefined) ? t.exitPrice : '-';
+      const ptsStr = (t.points !== null && t.points !== undefined) ? `${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts` : '-';
+      md += `| ${i + 1} | ${t.time || '--:--'} | ${t.asset} | ${t.direction} | ${entryStr} | ${exitStr} | ${ptsStr} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
     });
     md += `\n`;
   } else {
     md += `*No se registraron operaciones individuales en esta sesión.*\n\n`;
   }
-
 
   md += `## 3. RETROSPECTIVA & PSICOLOGÍA POST-MERCADO\n`;
   md += `- **Errores Cometidos:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
@@ -1532,7 +1856,12 @@ function buildDailyMarkdown(s) {
 
   md += `---\n\n`;
   md += `## PROMPT DE ANÁLISIS PARA NOTEBOOKLM\n`;
-  md += `> *"Actúa como mi Head Trader y Mentor de Psicología en Trading de Cuentas de Fondeo. Lee este reporte diario junto con mi Plan de Trading pre-cargado en esta libreta. Analiza si mi ejecución hoy estuvo alineada a mis reglas, evalúa si caí en el ciclo de auge/crisis (tilteo o sobreconfianza), y dame 3 recomendaciones concretas y específicas para mi próxima sesión."*\n`;
+  if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
+    const reasonText = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación';
+    md += `> *"Actúa como mi Head Trader y Mentor de Psicología en Trading de Cuentas de Fondeo. En esta sesión de hoy NO abrí operaciones para preservar mi capital y apegarme a mi plan. Lee este reporte y evalúa mi decisión de no operar por '${reasonText}'. Analiza la disciplina demostrada al no forzar entradas y dame recomendaciones para mantener esta paciencia en las próximas sesiones."*\n`;
+  } else {
+    md += `> *"Actúa como mi Head Trader y Mentor de Psicología en Trading de Cuentas de Fondeo. Lee este reporte diario junto con mi Plan de Trading pre-cargado en esta libreta. Analiza si mi ejecución hoy estuvo alineada a mis reglas, evalúa si caí en el ciclo de auge/crisis (tilteo o sobreconfianza), y dame 3 recomendaciones concretas y específicas para mi próxima sesión."*\n`;
+  }
 
   return md;
 }

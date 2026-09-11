@@ -16,8 +16,10 @@ CREATE TABLE IF NOT EXISTS public.trading_sessions (
   bias TEXT,
   pre_emotion TEXT,
   energy_score INTEGER DEFAULT 8,
+  -- checklist JSONB: { news: bool, levels: bool, acceptLoss: bool, noTradeSession: { noTrades: bool, reason: text, chartImage: text, chartUrl: text, notes: text } }
   checklist JSONB DEFAULT '{}'::jsonb,
   folio_maestro JSONB DEFAULT '{}'::jsonb,
+  -- trades JSONB Array: [{ id, time, entryPrice, exitPrice, points, asset, direction, lots, pnl, rr, setup, tags, chartUrl, chartImage, notes }]
   trades JSONB DEFAULT '[]'::jsonb,
   adherence TEXT,
   discipline_score INTEGER DEFAULT 10,

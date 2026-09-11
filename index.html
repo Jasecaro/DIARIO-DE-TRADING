@@ -747,20 +747,98 @@
               <h3 class="card-title"><i class="fa-solid fa-bolt"></i> Ejecución de Operaciones en Vivo</h3>
               <p style="font-size: 0.85rem; color: var(--text-muted);">Registra cada operación rápidamente usando los selectores predeterminados.</p>
             </div>
-            <button type="button" class="btn btn-success" onclick="openTradeModal()">
-              <i class="fa-solid fa-plus"></i> Agregar Trade
-            </button>
+            <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-no-trades" id="btn-toggle-no-trades" onclick="toggleNoTradesMode(true)">
+                <i class="fa-solid fa-shield-halved"></i> No Hubo Entradas (Paciencia)
+              </button>
+              <button type="button" class="btn btn-success" onclick="openTradeModal()">
+                <i class="fa-solid fa-plus"></i> Agregar Trade
+              </button>
+            </div>
           </div>
 
-          <!-- Active Session Trades Table -->
-          <div class="table-responsive" style="margin-bottom: 1.5rem;">
+          <!-- PANEL: SESIÓN SIN OPERACIONES (DÍA DE PACIENCIA Y PRESERVACIÓN) -->
+          <div id="no-trades-card" class="no-trades-container" style="display: none; margin-bottom: 1.5rem;">
+            <div class="no-trades-banner">
+              <div class="no-trades-header-row">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div class="no-trades-icon-badge">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                  <div>
+                    <h4 class="no-trades-title">Sesión Sin Entradas • Día de Paciencia & Preservación</h4>
+                    <p class="no-trades-subtitle">No forzar operaciones cuando el mercado no ofrece ventaja estadística es el hábito #1 de los traders rentables.</p>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNoTradesMode(false)" title="Volver al registro de operaciones normales">
+                  <i class="fa-solid fa-arrow-rotate-left"></i> Cambiar a Registrar Trades
+                </button>
+              </div>
+
+              <!-- Motivo de No Operar -->
+              <div class="form-group full-width" style="margin-top: 1rem;">
+                <label style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;"><i class="fa-solid fa-filter"></i> Motivo Principal para No Operar Hoy:</label>
+                <div class="chip-group" id="no-trade-reasons-chips" style="margin-top: 0.4rem;">
+                  <div class="chip selected" onclick="selectNoTradeReason(this, 'Mercado en Consolidación / Rango sucio')">Mercado en Rango / Sucio</div>
+                  <div class="chip" onclick="selectNoTradeReason(this, 'No llegó a mi Zona de Entrada (POI / FVG)')">No llegó a mi POI / FVG</div>
+                  <div class="chip" onclick="selectNoTradeReason(this, 'Noticias de Alto Impacto / Volatilidad Errática')">Noticias / Volatilidad irregular</div>
+                  <div class="chip" onclick="selectNoTradeReason(this, 'Falta de Confirmación del Setup según el Plan')">Sin Confirmación del Setup</div>
+                  <div class="chip" onclick="selectNoTradeReason(this, 'Fuera de Horario / Sin Volumen en Killzone')">Fuera de Killzone / Sin volumen</div>
+                  <div class="chip" onclick="selectNoTradeReason(this, 'Otro Motivo')">Otro Motivo</div>
+                </div>
+                <input type="hidden" id="session-no-trade-reason" value="Mercado en Consolidación / Rango sucio">
+              </div>
+
+              <!-- Subida de Captura del Gráfico de la Sesión -->
+              <div class="form-group full-width" style="margin-top: 1rem;">
+                <label style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;"><i class="fa-solid fa-image"></i> Captura del Gráfico de la Sesión (Análisis técnico):</label>
+                
+                <div class="image-upload-box" id="session-chart-drop-zone">
+                  <div id="session-upload-prompt" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center;">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--accent-primary);"></i>
+                    <div>
+                      <strong>Sube el pantallazo del gráfico</strong> o <span style="color: var(--accent-primary); text-decoration: underline; cursor: pointer;" onclick="document.getElementById('session-chart-file').click()">haz clic para buscar</span>
+                      <br><span style="font-size: 0.78rem; color: var(--text-subtle);">¡También puedes presionar <strong>Ctrl + V</strong> en esta pantalla para pegar tu gráfico!</span>
+                    </div>
+                    <input type="file" id="session-chart-file" accept="image/*" style="display: none;" onchange="handleSessionChartFile(event)">
+                  </div>
+
+                  <!-- Preview Container -->
+                  <div id="session-chart-preview-wrapper" style="display: none; margin-top: 0.5rem; position: relative; text-align: center;">
+                    <img id="session-chart-preview-img" src="" alt="Gráfico de la Sesión" style="max-width: 100%; max-height: 260px; border-radius: var(--radius-md); border: 1px solid var(--border-color); object-fit: contain; cursor: pointer;" onclick="openLightbox(this.src)">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeSessionChartPreview()" style="position: absolute; top: 8px; right: 8px;">
+                      <i class="fa-solid fa-trash"></i> Eliminar Imagen
+                    </button>
+                  </div>
+                </div>
+
+                <div style="margin-top: 0.5rem;">
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">O pegar enlace externo (TradingView / Lightshot):</span>
+                  <input type="text" id="session-chart-url" placeholder="https://www.tradingview.com/x/..." style="margin-top: 0.25rem;">
+                </div>
+                <input type="hidden" id="session-chart-base64" value="">
+              </div>
+
+              <!-- Observaciones / Análisis Técnico de la Sesión -->
+              <div class="form-group full-width" style="margin-top: 1rem;">
+                <label style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;"><i class="fa-solid fa-comment-dots"></i> Observaciones / Bitácora del Mercado:</label>
+                <textarea id="session-no-trade-notes" placeholder="Ej: El precio abrió en New York y se quedó comprimido en un rango estrecho sin barrer liquidez previa. No hubo setup que cumpliera las reglas del playbook. Capital protegido."></textarea>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Active Session Trades Table Container -->
+          <div class="table-responsive" id="trades-table-container" style="margin-bottom: 1.5rem;">
             <table class="custom-table">
               <thead>
                 <tr>
                   <th>#</th>
+                  <th>Hora</th>
                   <th>Activo</th>
                   <th>Tipo</th>
-                  <th>Entrada / SL / TP</th>
+                  <th>Entrada ➔ Salida</th>
+                  <th>Lotes</th>
                   <th>Setup</th>
                   <th>Gráfico</th>
                   <th>Etiquetas / Psicología</th>
@@ -1243,12 +1321,33 @@ Por ejemplo:
 
           <div class="form-group">
             <label><i class="fa-solid fa-up-down"></i> Dirección</label>
-            <select id="modal-direction">
+            <select id="modal-direction" onchange="calculatePointsDifference()">
               <option value="LONG">LONG (Compra)</option>
               <option value="SHORT">SHORT (Venta)</option>
             </select>
           </div>
 
+          <!-- Hora y Precios Técnicos -->
+          <div class="form-group">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fa-regular fa-clock"></i> Hora Entrada</span>
+              <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 0.72rem;" onclick="setTradeModalCurrentTime()" title="Poner hora actual">🕒 Ahora</button>
+            </label>
+            <input type="time" id="modal-trade-time">
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-arrow-right-to-bracket"></i> Precio de Entrada</label>
+            <input type="number" step="any" id="modal-entry-price" placeholder="Ej: 20450.25" oninput="calculatePointsDifference()">
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fa-solid fa-arrow-right-from-bracket"></i> Precio de Salida</span>
+              <span id="modal-points-badge" class="badge badge-sm" style="display: none; font-size: 0.72rem; padding: 2px 6px;">0 pts</span>
+            </label>
+            <input type="number" step="any" id="modal-exit-price" placeholder="Ej: 20485.50" oninput="calculatePointsDifference()">
+          </div>
 
           <div class="form-group">
             <label><i class="fa-solid fa-cubes"></i> Tamaño / Lotes / Contratos</label>
@@ -1392,7 +1491,7 @@ Por ejemplo:
               <div class="paper-field-box">
                 <span class="paper-label">TURNO / HORA:</span>
                 <span class="paper-checkboxes">
-                  [ &nbsp; ] NY Open &nbsp;&nbsp; [ &nbsp; ] London Open &nbsp;&nbsp; [ &nbsp; ] Asia &nbsp;&nbsp; [ &nbsp; ] Scalp / Fuera
+                  [ &nbsp; ] NY Open &nbsp;&nbsp; [ &nbsp; ] London &nbsp;&nbsp; [ &nbsp; ] Asia &nbsp; | &nbsp; Hora: ________
                 </span>
               </div>
               <div class="paper-field-box full-width-field">
@@ -1543,6 +1642,10 @@ Por ejemplo:
                 <i class="fa-solid fa-chart-line"></i> TRADING JOURNAL PRO
               </div>
               <div class="paper-sheet-title">BITÁCORA FÍSICA • PÁGINA 2: EJECUCIÓN & RETROSPECTIVA</div>
+              <div class="paper-sheet-date-box" style="font-size: 0.72rem; font-weight: 700; color: #0f172a; display: flex; gap: 8px; align-items: center;">
+                <span>FECHA: ____________</span>
+                <span>HORA: ________</span>
+              </div>
               <div class="paper-sheet-badge">MÁX 4 TRADES</div>
             </div>
           </div>
@@ -1558,7 +1661,10 @@ Por ejemplo:
               <!-- TRADE 1 -->
               <div class="paper-trade-card">
                 <div class="paper-trade-header">
-                  <strong>TRADE #1</strong>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <strong>TRADE #1</strong>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                  </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
                 <div class="paper-trade-row">
@@ -1568,6 +1674,7 @@ Por ejemplo:
                 </div>
                 <div class="paper-trade-row">
                   <span>Entrada: ___________</span>
+                  <span>Salida: ___________</span>
                   <span>SL: ___________</span>
                   <span>TP: ___________</span>
                 </div>
@@ -1585,7 +1692,10 @@ Por ejemplo:
               <!-- TRADE 2 -->
               <div class="paper-trade-card">
                 <div class="paper-trade-header">
-                  <strong>TRADE #2</strong>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <strong>TRADE #2</strong>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                  </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
                 <div class="paper-trade-row">
@@ -1595,6 +1705,7 @@ Por ejemplo:
                 </div>
                 <div class="paper-trade-row">
                   <span>Entrada: ___________</span>
+                  <span>Salida: ___________</span>
                   <span>SL: ___________</span>
                   <span>TP: ___________</span>
                 </div>
@@ -1612,7 +1723,10 @@ Por ejemplo:
               <!-- TRADE 3 -->
               <div class="paper-trade-card">
                 <div class="paper-trade-header">
-                  <strong>TRADE #3</strong>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <strong>TRADE #3</strong>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                  </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
                 <div class="paper-trade-row">
@@ -1622,6 +1736,7 @@ Por ejemplo:
                 </div>
                 <div class="paper-trade-row">
                   <span>Entrada: ___________</span>
+                  <span>Salida: ___________</span>
                   <span>SL: ___________</span>
                   <span>TP: ___________</span>
                 </div>
@@ -1639,7 +1754,10 @@ Por ejemplo:
               <!-- TRADE 4 -->
               <div class="paper-trade-card">
                 <div class="paper-trade-header">
-                  <strong>TRADE #4</strong>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <strong>TRADE #4</strong>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                  </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
                 <div class="paper-trade-row">
@@ -1649,6 +1767,7 @@ Por ejemplo:
                 </div>
                 <div class="paper-trade-row">
                   <span>Entrada: ___________</span>
+                  <span>Salida: ___________</span>
                   <span>SL: ___________</span>
                   <span>TP: ___________</span>
                 </div>
