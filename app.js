@@ -20,7 +20,9 @@ let state = {
   errorsChart: null,
   currentSessionAccounts: ['FTMO 100K', 'Apex 50K #1', 'Apex 50K #2'],
   currentSessionAccountRisks: { 'FTMO 100K': 1000, 'Apex 50K #1': 500, 'Apex 50K #2': 500 },
-  noTradesMode: false
+  noTradesMode: false,
+  selectedDashboardAccount: 'ALL',
+  calendarDate: new Date()
 };
 
 const LOCAL_STORAGE_KEY = 'TRADING_JOURNAL_PRO_DATA_V1';
@@ -70,6 +72,7 @@ function initializeDefaults() {
   renderAccountsChips();
   renderRiskInputs();
   toggleRiskPerAccountBox();
+  renderDashboardAccountPills();
 }
 
 
@@ -356,6 +359,10 @@ function openTradeModal(editIndex = -1) {
       setImagePreview(trade.chartImage);
     }
 
+    if (accSelect) {
+      accSelect.value = trade.account || 'REPLICATED';
+    }
+
     // Sync modal trade chips
     const tradeTags = (trade.tags || '').split(',').map(t => t.trim());
     document.querySelectorAll('#modal-trade-chips .chip').forEach(chip => {
@@ -371,6 +378,9 @@ function openTradeModal(editIndex = -1) {
     modalTitle.innerHTML = '<i class="fa-solid fa-chart-line"></i> Registrar Trade en Vivo';
     form.reset();
     setTradeModalCurrentTime();
+    if (accSelect) {
+      accSelect.value = 'REPLICATED';
+    }
     document.getElementById('modal-entry-price').value = '';
     document.getElementById('modal-exit-price').value = '';
     calculatePointsDifference();
@@ -636,6 +646,7 @@ function saveTradeFromModal(event) {
 
   const tradeData = {
     id: (state.editingTradeIndex >= 0 && state.currentDraftTrades[state.editingTradeIndex]) ? state.currentDraftTrades[state.editingTradeIndex].id : Date.now(),
+    account: document.getElementById('modal-trade-account')?.value || 'REPLICATED',
     time: document.getElementById('modal-trade-time')?.value || '',
     entryPrice: !isNaN(entryVal) ? entryVal : null,
     exitPrice: !isNaN(exitVal) ? exitVal : null,
@@ -728,7 +739,12 @@ function renderDraftTradesTable() {
       <tr>
         <td><strong>#${idx + 1}</strong></td>
         <td><span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span></td>
-        <td><strong>${t.asset}</strong></td>
+        <td>
+          <strong>${t.asset}</strong>
+          ${(t.account && t.account !== 'REPLICATED')
+            ? `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.65rem; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-wallet"></i> ${t.account}</span></div>`
+            : `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.65rem; background: #f1f5f9; color: var(--text-muted);"><i class="fa-solid fa-bolt"></i> Replicado</span></div>`}
+        </td>
         <td><span class="badge ${dirClass}">${t.direction}</span></td>
         <td>${priceHtml}</td>
         <td>${t.lots} Lotes</td>
@@ -885,9 +901,634 @@ function handleSaveSession(event) {
   }
 }
 
+// ==========================================================================
+// MULTI-CUENTA DE FONDEO: GESTIÓN Y FILTROS
+// ==========================================================================
+function getAllKnownAccounts() {
+  const accountsSet = new Set();
+  
+  if (Array.isArray(state.currentSessionAccounts)) {
+    state.currentSessionAccounts.forEach(a => {
+      if (a && a.trim()) accountsSet.add(a.trim());
+    });
+  }
+
+  if (Array.isArray(state.sessions)) {
+    state.sessions.forEach(s => {
+      if (Array.isArray(s.accountsList)) {
+        s.accountsList.forEach(a => {
+          if (a && a.trim()) accountsSet.add(a.trim());
+        });
+      } else if (s.account) {
+        s.account.split(',').forEach(a => {
+          const clean = a.trim();
+          if (clean && clean !== 'Sin Cuenta') accountsSet.add(clean);
+        });
+      }
+
+      if (Array.isArray(s.trades)) {
+        s.trades.forEach(t => {
+          if (t.account && t.account !== 'REPLICATED' && t.account.trim()) {
+            accountsSet.add(t.account.trim());
+          }
+        });
+      }
+    });
+  }
+
+  return Array.from(accountsSet);
+}
+
+function renderDashboardAccountPills() {
+  const container = document.getElementById('dashboard-account-pills');
+  if (!container) return;
+
+  const accounts = getAllKnownAccounts();
+  const current = state.selectedDashboardAccount || 'ALL';
+
+  let html = `
+    <div class="dash-account-pill ${current === 'ALL' ? 'active' : ''}" onclick="setDashboardAccountFilter('ALL')">
+      <i class="fa-solid fa-globe"></i> Consolidado (Todas)
+    </div>
+  `;
+
+  accounts.forEach(acc => {
+    const isActive = current === acc;
+    const safeAcc = acc.replace(/'/g, "\\'");
+    html += `
+      <div class="dash-account-pill ${isActive ? 'active' : ''}" onclick="setDashboardAccountFilter('${safeAcc}')">
+        <i class="fa-solid fa-wallet"></i> ${acc}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function setDashboardAccountFilter(accountName) {
+  state.selectedDashboardAccount = accountName;
+  renderDashboardAccountPills();
+  renderDashboard();
+}
+
+function promptAddQuickAccount() {
+  const name = prompt('Nombre de la nueva cuenta de fondeo (ej: FTMO 200K, Apex 50K #3, Topstep 50K):');
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
+  if (!state.currentSessionAccounts.includes(cleanName)) {
+    state.currentSessionAccounts.push(cleanName);
+    const defaultRisk = cleanName.toLowerCase().includes('100') ? 1000 : (cleanName.toLowerCase().includes('200') ? 2000 : 500);
+    state.currentSessionAccountRisks[cleanName] = defaultRisk;
+  }
+  setDashboardAccountFilter(cleanName);
+  renderAccountsChips();
+  renderRiskInputs();
+  showToast(`Cuenta "${cleanName}" agregada y seleccionada`, 'success');
+}
+
+function renderAccountsComparisonTable() {
+  const tbody = document.getElementById('accounts-comparison-tbody');
+  const badge = document.getElementById('accounts-count-badge');
+  if (!tbody) return;
+
+  const accounts = getAllKnownAccounts();
+  if (badge) {
+    badge.innerText = `${accounts.length} ${accounts.length === 1 ? 'Cuenta Registrada' : 'Cuentas Registradas'}`;
+  }
+
+  if (accounts.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+          No hay cuentas registradas aún. Agrega una cuenta arriba para comenzar a comparar.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const allSessions = state.sessions || [];
+
+  let rowsHtml = '';
+  accounts.forEach(acc => {
+    let accPnl = 0;
+    let accTrades = 0;
+    let accWins = 0;
+    let accLosses = 0;
+    let accGrossProfit = 0;
+    let accGrossLoss = 0;
+    let accPeakCapital = 0;
+    let accRunningCapital = 0;
+    let accMaxDrawdown = 0;
+
+    allSessions.forEach(s => {
+      const hasAccount = (s.accountsList && s.accountsList.includes(acc)) ||
+                         (s.account && s.account.includes(acc));
+      if (!hasAccount) return;
+
+      (s.trades || []).forEach(t => {
+        if (!t.account || t.account === 'REPLICATED' || t.account === acc) {
+          accTrades++;
+          accPnl += (t.pnl || 0);
+          accRunningCapital += (t.pnl || 0);
+          if (accRunningCapital > accPeakCapital) accPeakCapital = accRunningCapital;
+          const dd = accPeakCapital - accRunningCapital;
+          if (dd > accMaxDrawdown) accMaxDrawdown = dd;
+
+          if (t.pnl >= 0) {
+            accWins++;
+            accGrossProfit += t.pnl;
+          } else {
+            accLosses++;
+            accGrossLoss += Math.abs(t.pnl);
+          }
+        }
+      });
+    });
+
+    const wr = accTrades > 0 ? ((accWins / accTrades) * 100).toFixed(1) : '0.0';
+    const pf = accGrossLoss > 0 ? (accGrossProfit / accGrossLoss).toFixed(2) : (accGrossProfit > 0 ? 'INF' : '0.00');
+    const risk = state.currentSessionAccountRisks?.[acc] || (acc.toLowerCase().includes('100') ? 1000 : 500);
+    const isWin = accPnl >= 0;
+    const pnlClass = isWin ? 'badge-profit' : 'badge-loss';
+
+    let statusBadge = '<span class="badge" style="background: #f1f5f9; color: var(--text-muted);">Breakeven</span>';
+    if (accPnl > 0) {
+      statusBadge = '<span class="badge badge-profit"><i class="fa-solid fa-arrow-trend-up"></i> En Ganancia</span>';
+    } else if (accPnl < 0) {
+      statusBadge = '<span class="badge badge-loss"><i class="fa-solid fa-arrow-trend-down"></i> Drawdown</span>';
+    }
+
+    const isCurrentActive = state.selectedDashboardAccount === acc;
+    const safeAcc = acc.replace(/'/g, "\\'");
+
+    rowsHtml += `
+      <tr style="${isCurrentActive ? 'background: rgba(79, 70, 229, 0.06);' : ''}">
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-wallet" style="color: var(--accent-primary);"></i>
+            <strong>${acc}</strong>
+            ${isCurrentActive ? '<span class="badge" style="background: var(--accent-primary); color: #fff; font-size: 0.65rem; padding: 2px 6px;">Filtro Activo</span>' : ''}
+          </div>
+        </td>
+        <td><span style="font-family: var(--font-mono); font-size: 0.85rem;">$${parseFloat(risk).toFixed(0)}</span></td>
+        <td><span class="badge ${pnlClass}" style="font-family: var(--font-mono); font-size: 0.85rem;">$${accPnl.toFixed(2)}</span></td>
+        <td>${accTrades} <span style="font-size: 0.75rem; color: var(--text-subtle);">(${accWins}W / ${accLosses}L)</span></td>
+        <td>
+          <span style="font-weight: 700;">${wr}%</span>
+          <div class="account-wr-bar" title="Win Rate ${wr}%">
+            <div class="account-wr-fill" style="width: ${Math.min(100, Math.max(0, parseFloat(wr)))}%;"></div>
+          </div>
+        </td>
+        <td><strong>${pf}</strong></td>
+        <td><span style="color: var(--loss); font-family: var(--font-mono); font-size: 0.85rem;">-$${accMaxDrawdown.toFixed(2)}</span></td>
+        <td>${statusBadge}</td>
+        <td>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setDashboardAccountFilter('${safeAcc}')" title="Filtrar Dashboard por esta cuenta">
+            <i class="fa-solid fa-filter"></i> ${isCurrentActive ? 'Viendo' : 'Ver'}
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = rowsHtml;
+}
+
+// ==========================================================================
+// CALENDARIO P&L ESTILO TRADEZELLA
+// ==========================================================================
+function changeCalendarMonth(delta) {
+  state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() + delta, 1);
+  renderDashboard();
+}
+
+function goToCalendarCurrentMonth() {
+  state.calendarDate = new Date();
+  renderDashboard();
+}
+
+function renderDashboardCalendar(filteredSessions) {
+  const grid = document.getElementById('dashboard-calendar-grid');
+  const title = document.getElementById('cal-month-title');
+  if (!grid || !title) return;
+
+  const viewYear = state.calendarDate.getFullYear();
+  const viewMonth = state.calendarDate.getMonth(); // 0 to 11
+
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  title.innerText = `${monthNames[viewMonth]} ${viewYear}`;
+
+  // Group filtered sessions and trades by YYYY-MM-DD
+  const daysMap = {};
+  filteredSessions.forEach(s => {
+    if (!s.date) return;
+    const dStr = s.date.trim();
+    if (!daysMap[dStr]) {
+      daysMap[dStr] = {
+        sessions: [],
+        trades: [],
+        netPnl: 0,
+        isPatienceDay: false,
+        hasNotesOrMedia: false
+      };
+    }
+    daysMap[dStr].sessions.push(s);
+    if (s.noTrades) {
+      daysMap[dStr].isPatienceDay = true;
+    }
+    if (s.chartImage || s.takeaway || (s.psychologyPlan && (s.psychologyPlan.nodo1 || s.psychologyPlan.improve))) {
+      daysMap[dStr].hasNotesOrMedia = true;
+    }
+    (s.trades || []).forEach(t => {
+      daysMap[dStr].trades.push(t);
+      daysMap[dStr].netPnl += (t.pnl || 0);
+      if (t.chartImage || t.chartUrl || t.notes) {
+        daysMap[dStr].hasNotesOrMedia = true;
+      }
+    });
+  });
+
+  // Calculate calendar layout
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sun, 1 = Mon ...
+  const daysInCurrentMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  const today = new Date();
+  const isCurrentMonthActual = (today.getFullYear() === viewYear && today.getMonth() === viewMonth);
+  const actualTodayDate = today.getDate();
+
+  let monthNetPnl = 0;
+  let greenDays = 0;
+  let redDays = 0;
+  let patienceDays = 0;
+  let totalMonthTrades = 0;
+
+  let cellsHtml = '';
+
+  // 1. Previous month trailing days
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const prevDayNum = daysInPrevMonth - i;
+    cellsHtml += `
+      <div class="cal-day-cell day-other-month">
+        <div class="cal-day-header">
+          <span class="cal-day-number">${prevDayNum}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Format compact P&L helper: e.g. +$1.15K or -$350.00
+  function formatCompactPnl(val) {
+    const abs = Math.abs(val);
+    const sign = val >= 0 ? '+' : '-';
+    if (abs >= 1000) {
+      return `${sign}$${(abs / 1000).toFixed(2)}K`;
+    }
+    return `${sign}$${abs.toFixed(2)}`;
+  }
+
+  // 2. Current month days
+  for (let day = 1; day <= daysInCurrentMonth; day++) {
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayData = daysMap[dateStr];
+    const isToday = isCurrentMonthActual && (day === actualTodayDate);
+
+    if (dayData) {
+      const hasTrades = dayData.trades.length > 0;
+      let cellClass = '';
+      let pnlFormatted = '';
+      let subText = '';
+      let dotClass = '';
+
+      if (hasTrades) {
+        totalMonthTrades += dayData.trades.length;
+        monthNetPnl += dayData.netPnl;
+
+        if (dayData.netPnl > 0) {
+          greenDays++;
+          cellClass = 'day-win';
+          dotClass = 'dot-win';
+        } else if (dayData.netPnl < 0) {
+          redDays++;
+          cellClass = 'day-loss';
+          dotClass = 'dot-loss';
+        } else {
+          cellClass = 'day-patience';
+          dotClass = 'dot-win';
+        }
+
+        const winTrades = dayData.trades.filter(t => t.pnl >= 0).length;
+        const winRate = ((winTrades / dayData.trades.length) * 100).toFixed(0);
+        pnlFormatted = formatCompactPnl(dayData.netPnl);
+        subText = `${dayData.trades.length} ${dayData.trades.length === 1 ? 'trade' : 'trades'} • ${winRate}%`;
+      } else if (dayData.isPatienceDay) {
+        patienceDays++;
+        cellClass = 'day-patience';
+        pnlFormatted = '$0.00';
+        subText = '🛡️ Paciencia';
+      } else {
+        cellClass = '';
+        pnlFormatted = '';
+        subText = '';
+      }
+
+      const mediaIcon = dayData.hasNotesOrMedia ? '<i class="fa-solid fa-camera" title="Tiene bitácora / captura"></i>' : '';
+      const dotHtml = dotClass ? `<span class="cal-day-dot ${dotClass}"></span>` : '';
+
+      cellsHtml += `
+        <div class="cal-day-cell has-activity ${cellClass} ${isToday ? 'is-today' : ''}" onclick="openCalendarDayDetails('${dateStr}')" title="Ver detalle del ${day} de ${monthNames[viewMonth]}">
+          <div class="cal-day-header">
+            <span class="cal-day-number">${day}</span>
+            <div class="cal-day-icons">
+              ${mediaIcon}
+              ${dotHtml}
+            </div>
+          </div>
+          <div class="cal-day-pnl ${dayData.netPnl > 0 ? 'pnl-win' : (dayData.netPnl < 0 ? 'pnl-loss' : 'pnl-neutral')}">
+            ${pnlFormatted}
+          </div>
+          <div class="cal-day-sub">
+            <span>${subText}</span>
+          </div>
+        </div>
+      `;
+    } else {
+      // Day with no activity
+      cellsHtml += `
+        <div class="cal-day-cell ${isToday ? 'is-today' : ''}">
+          <div class="cal-day-header">
+            <span class="cal-day-number">${day}</span>
+          </div>
+          <div class="cal-day-pnl pnl-neutral" style="opacity: 0.3; font-size: 0.8rem;">-</div>
+          <div class="cal-day-sub"></div>
+        </div>
+      `;
+    }
+  }
+
+  // 3. Next month leading days to complete grid
+  const totalCells = firstDayOfWeek + daysInCurrentMonth;
+  const remainingCells = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remainingCells; i++) {
+    cellsHtml += `
+      <div class="cal-day-cell day-other-month">
+        <div class="cal-day-header">
+          <span class="cal-day-number">${i}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = cellsHtml;
+
+  // Update month summary badges
+  const pnlEl = document.getElementById('cal-month-pnl');
+  if (pnlEl) {
+    pnlEl.innerText = `${monthNetPnl >= 0 ? '+' : ''}$${monthNetPnl.toFixed(2)}`;
+    pnlEl.className = `cal-stat-val ${monthNetPnl >= 0 ? 'profit' : 'loss'}`;
+  }
+
+  const daysEl = document.getElementById('cal-month-days');
+  if (daysEl) {
+    daysEl.innerText = `${greenDays}W - ${redDays}L`;
+  }
+
+  const wrEl = document.getElementById('cal-month-winrate');
+  if (wrEl) {
+    const totalDecidedDays = greenDays + redDays;
+    const wr = totalDecidedDays > 0 ? ((greenDays / totalDecidedDays) * 100).toFixed(1) : '0.0';
+    wrEl.innerText = `${wr}% WR`;
+  }
+
+  const patEl = document.getElementById('cal-month-patience');
+  if (patEl) {
+    patEl.innerText = `${patienceDays} 🛡️`;
+  }
+}
+
+// Modal Detalle del Día
+function openCalendarDayDetails(dateStr) {
+  const modal = document.getElementById('calendar-day-modal');
+  const title = document.getElementById('cal-day-modal-title');
+  const subtitle = document.getElementById('cal-day-modal-subtitle');
+  const body = document.getElementById('cal-day-modal-body');
+  if (!modal || !body) return;
+
+  const parts = dateStr.split('-');
+  const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const formattedDate = dateObj.toLocaleDateString('es-ES', options);
+
+  title.innerHTML = `<i class="fa-regular fa-calendar-check" style="color: var(--accent-primary);"></i> ${formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)}`;
+
+  const isFiltered = state.selectedDashboardAccount && state.selectedDashboardAccount !== 'ALL';
+  const targetAccount = state.selectedDashboardAccount;
+
+  const sessions = (state.sessions || []).filter(s => {
+    if (s.date !== dateStr) return false;
+    if (isFiltered) {
+      return (s.accountsList && s.accountsList.includes(targetAccount)) ||
+             (s.account && s.account.includes(targetAccount));
+    }
+    return true;
+  });
+
+  subtitle.innerText = isFiltered ? `Filtro activo: ${targetAccount} • ${sessions.length} sesión(es)` : `Consolidado (Todas las cuentas) • ${sessions.length} sesión(es)`;
+
+  let totalDayPnl = 0;
+  let allTrades = [];
+  let patienceSessions = [];
+
+  sessions.forEach(s => {
+    if (s.noTrades) {
+      patienceSessions.push(s);
+    }
+    (s.trades || []).forEach(t => {
+      if (!isFiltered || !t.account || t.account === 'REPLICATED' || t.account === targetAccount) {
+        allTrades.push({ ...t, sessionAccount: s.account });
+        totalDayPnl += (t.pnl || 0);
+      }
+    });
+  });
+
+  const wins = allTrades.filter(t => t.pnl >= 0).length;
+  const losses = allTrades.filter(t => t.pnl < 0).length;
+  const wr = allTrades.length > 0 ? ((wins / allTrades.length) * 100).toFixed(1) : '0.0';
+
+  let bodyHtml = `
+    <div class="cal-modal-summary-grid">
+      <div class="cal-modal-stat-card">
+        <div class="label">P&L Neto Día</div>
+        <div class="val" style="color: ${totalDayPnl >= 0 ? 'var(--profit)' : 'var(--loss)'};">
+          ${totalDayPnl >= 0 ? '+' : ''}$${totalDayPnl.toFixed(2)}
+        </div>
+      </div>
+      <div class="cal-modal-stat-card">
+        <div class="label">Operaciones</div>
+        <div class="val">${allTrades.length}</div>
+      </div>
+      <div class="cal-modal-stat-card">
+        <div class="label">Win Rate</div>
+        <div class="val">${wr}%</div>
+      </div>
+      <div class="cal-modal-stat-card">
+        <div class="label">Ganadas / Perdidas</div>
+        <div class="val" style="font-size: 1.05rem;">${wins}W / ${losses}L</div>
+      </div>
+    </div>
+  `;
+
+  // Patience Sessions
+  if (patienceSessions.length > 0) {
+    bodyHtml += `
+      <div style="margin-bottom: 1.5rem;">
+        <h4 style="color: #0284c7; font-size: 0.95rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-shield-halved"></i> Registro de Día de Paciencia (Sin Operaciones)
+        </h4>
+    `;
+
+    patienceSessions.forEach(ps => {
+      const reason = ps.mistakes && ps.mistakes.includes('Paciencia') ? ps.mistakes : (ps.noTradeReason || 'Mercado sin setup claro / Cumplimiento del plan');
+      const chartHtml = ps.chartImage ? `
+        <div style="margin-top: 0.75rem;">
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Captura del Gráfico:</span><br>
+          <img src="${ps.chartImage}" class="chart-thumbnail" style="max-height: 140px; margin-top: 4px;" onclick="openLightbox('${ps.chartImage}')" title="Ver pantallazo full size">
+        </div>
+      ` : '';
+
+      bodyHtml += `
+        <div class="no-trade-history-box" style="margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="badge badge-no-trades"><i class="fa-solid fa-shield-halved"></i> Capital Preservado ($0.00)</span>
+            <span style="font-size: 0.8rem; color: var(--text-subtle);"><i class="fa-solid fa-wallet"></i> ${ps.account}</span>
+          </div>
+          <p style="font-size: 0.85rem; margin: 0 0 0.4rem 0;"><strong>Motivo:</strong> ${reason}</p>
+          ${ps.takeaway ? `<p style="font-size: 0.83rem; color: var(--text-muted); margin: 0 0 0.4rem 0;"><strong>Notas:</strong> ${ps.takeaway}</p>` : ''}
+          ${chartHtml}
+        </div>
+      `;
+    });
+
+    bodyHtml += `</div>`;
+  }
+
+  // Trades List
+  if (allTrades.length > 0) {
+    bodyHtml += `
+      <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-list-check" style="color: var(--accent-primary);"></i> Operaciones Ejecutadas (${allTrades.length})
+      </h4>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    `;
+
+    allTrades.forEach((t, idx) => {
+      const isWin = t.pnl >= 0;
+      const pnlClass = isWin ? 'badge-profit' : 'badge-loss';
+      const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
+      const accountBadge = (t.account && t.account !== 'REPLICATED')
+        ? `<span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.72rem;"><i class="fa-solid fa-wallet"></i> ${t.account}</span>`
+        : `<span class="badge" style="background: #f1f5f9; color: var(--text-muted); font-size: 0.72rem;"><i class="fa-solid fa-bolt"></i> Replicado</span>`;
+
+      let priceHtml = '';
+      if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
+        const ptsBadge = t.points !== null && t.points !== undefined ? `
+          <span class="badge ${t.points >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 0.7rem; padding: 1px 6px;">
+            ${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts
+          </span>
+        ` : '';
+        priceHtml = `<span style="font-size: 0.82rem; font-family: var(--font-mono);">${t.entryPrice} ➔ ${t.exitPrice}</span> ${ptsBadge}`;
+      }
+
+      const imgHtml = t.chartImage ? `
+        <div style="margin-top: 0.5rem;">
+          <img src="${t.chartImage}" class="chart-thumbnail" style="max-height: 120px;" onclick="openLightbox('${t.chartImage}')" title="Ver captura en grande">
+        </div>
+      ` : (t.chartUrl ? `
+        <div style="margin-top: 0.4rem;">
+          <a href="${t.chartUrl}" target="_blank" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Gráfico TradingView</a>
+        </div>
+      ` : '');
+
+      bodyHtml += `
+        <div class="cal-trade-item-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-weight: 800; font-size: 0.95rem;">#${idx + 1} ${t.asset}</span>
+              <span class="badge ${dirClass}">${t.direction}</span>
+              ${accountBadge}
+              <span style="font-size: 0.8rem; color: var(--text-subtle);"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge ${pnlClass}" style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 800;">
+                ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}
+              </span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-subtle);">1:${t.rr || '0'}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+            <div><strong>Lotes:</strong> ${t.lots}</div>
+            <div><strong>Setup:</strong> ${t.setup || 'Plan Estándar'}</div>
+            ${priceHtml ? `<div><strong>Precios:</strong> ${priceHtml}</div>` : ''}
+          </div>
+
+          ${t.tags ? `<div style="margin-bottom: 0.4rem;"><span class="chip" style="font-size: 0.75rem;">${t.tags}</span></div>` : ''}
+          ${t.notes ? `<p style="font-size: 0.82rem; color: var(--text-main); margin: 0.4rem 0 0 0; background: var(--bg-main); padding: 0.5rem 0.75rem; border-radius: 6px;"><strong>Notas:</strong> ${t.notes}</p>` : ''}
+          ${imgHtml}
+        </div>
+      `;
+    });
+
+    bodyHtml += `</div>`;
+  } else if (patienceSessions.length === 0) {
+    bodyHtml += `
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <i class="fa-regular fa-calendar-xmark" style="font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.6;"></i>
+        <p>No se encontraron operaciones registradas para este día con el filtro actual.</p>
+      </div>
+    `;
+  }
+
+  body.innerHTML = bodyHtml;
+  modal.classList.add('active');
+}
+
+function closeCalendarDayModal() {
+  const modal = document.getElementById('calendar-day-modal');
+  if (modal) modal.classList.remove('active');
+}
+
 // Dashboard Calculations & Rendering
 function renderDashboard() {
-  const sessions = state.sessions;
+  const isFiltered = state.selectedDashboardAccount && state.selectedDashboardAccount !== 'ALL';
+  const targetAccount = state.selectedDashboardAccount;
+  const allSessions = state.sessions || [];
+
+  // Filter sessions according to selected account
+  const filteredSessions = allSessions.map(s => {
+    if (!isFiltered) return s;
+
+    const hasAccount = (s.accountsList && s.accountsList.includes(targetAccount)) ||
+                       (s.account && s.account.includes(targetAccount));
+    if (!hasAccount) return null;
+
+    // Filter trades in this session
+    const matchingTrades = (s.trades || []).filter(t => {
+      if (!t.account || t.account === 'REPLICATED') return true;
+      return t.account === targetAccount;
+    });
+
+    const net = s.noTrades ? 0 : matchingTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+    return {
+      ...s,
+      trades: matchingTrades,
+      netPnl: net
+    };
+  }).filter(Boolean);
 
   let totalPnl = 0;
   let totalTrades = 0;
@@ -902,7 +1543,7 @@ function renderDashboard() {
 
   const mistakesMap = {};
 
-  sessions.forEach(s => {
+  filteredSessions.forEach(s => {
     totalDiscipline += s.disciplineScore || 10;
     
     // Process mistakes
@@ -915,10 +1556,10 @@ function renderDashboard() {
       });
     }
 
-    s.trades.forEach(t => {
+    (s.trades || []).forEach(t => {
       totalTrades++;
-      totalPnl += t.pnl;
-      runningCapital += t.pnl;
+      totalPnl += (t.pnl || 0);
+      runningCapital += (t.pnl || 0);
 
       if (runningCapital > peakCapital) {
         peakCapital = runningCapital;
@@ -930,10 +1571,10 @@ function renderDashboard() {
 
       if (t.pnl >= 0) {
         wins++;
-        grossProfit += t.pnl;
+        grossProfit += (t.pnl || 0);
       } else {
         losses++;
-        grossLoss += Math.abs(t.pnl);
+        grossLoss += Math.abs(t.pnl || 0);
       }
     });
   });
@@ -941,26 +1582,54 @@ function renderDashboard() {
   // Calculate Metrics
   const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
   const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'INF' : '0.00');
-  const avgDiscipline = sessions.length > 0 ? (totalDiscipline / sessions.length).toFixed(1) : '10.0';
+  const avgDiscipline = filteredSessions.length > 0 ? (totalDiscipline / filteredSessions.length).toFixed(1) : '10.0';
 
   // Update UI Cards
   const pnlEl = document.getElementById('dash-net-pnl');
-  pnlEl.innerText = `$${totalPnl.toFixed(2)}`;
-  pnlEl.style.color = totalPnl >= 0 ? 'var(--profit)' : 'var(--loss)';
+  if (pnlEl) {
+    pnlEl.innerText = `$${totalPnl.toFixed(2)}`;
+    pnlEl.style.color = totalPnl >= 0 ? 'var(--profit)' : 'var(--loss)';
+  }
 
-  document.getElementById('dash-pnl-sub').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${sessions.length} Sesiones Registradas`;
-  document.getElementById('dash-winrate').innerText = `${winRate}%`;
-  document.getElementById('dash-winrate-sub').innerText = `${wins} Ganadas / ${losses} Pérdidas (${totalTrades} total)`;
-  document.getElementById('dash-profit-factor').innerText = profitFactor;
-  document.getElementById('dash-discipline').innerText = `${avgDiscipline} / 10`;
-  document.getElementById('dash-drawdown').innerText = `$${maxDrawdown.toFixed(2)}`;
+  const pnlSub = document.getElementById('dash-pnl-sub');
+  if (pnlSub) {
+    if (isFiltered) {
+      pnlSub.innerHTML = `<i class="fa-solid fa-wallet"></i> Cuenta: ${targetAccount} (${filteredSessions.length} Sesiones)`;
+    } else {
+      pnlSub.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${filteredSessions.length} Sesiones (Consolidado)`;
+    }
+  }
+
+  const wrEl = document.getElementById('dash-winrate');
+  if (wrEl) wrEl.innerText = `${winRate}%`;
+
+  const wrSub = document.getElementById('dash-winrate-sub');
+  if (wrSub) wrSub.innerText = `${wins} Ganadas / ${losses} Pérdidas (${totalTrades} total)`;
+
+  const pfEl = document.getElementById('dash-profit-factor');
+  if (pfEl) pfEl.innerText = profitFactor;
+
+  const discEl = document.getElementById('dash-discipline');
+  if (discEl) discEl.innerText = `${avgDiscipline} / 10`;
+
+  const ddEl = document.getElementById('dash-drawdown');
+  if (ddEl) ddEl.innerText = `$${maxDrawdown.toFixed(2)}`;
+
+  // Render Account Pills
+  renderDashboardAccountPills();
+
+  // Render TradeZella Calendar
+  renderDashboardCalendar(filteredSessions);
 
   // Render Charts
-  renderEquityChart(sessions);
+  renderEquityChart(filteredSessions);
   renderErrorsChart(mistakesMap);
 
+  // Render Accounts Comparison Table
+  renderAccountsComparisonTable();
+
   // Render Recent Table
-  renderRecentSessionsTable(sessions.slice(0, 5));
+  renderRecentSessionsTable(filteredSessions.slice(0, 5));
 }
 
 function renderRecentSessionsTable(recentSessions) {
