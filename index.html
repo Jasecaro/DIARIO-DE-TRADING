@@ -712,7 +712,12 @@
 
           <div class="form-grid">
             <div class="form-group">
-              <label><i class="fa-regular fa-calendar"></i> Fecha de la Sesión</label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label style="margin: 0;"><i class="fa-regular fa-calendar"></i> Fecha de la Sesión</label>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setSessionDateToday()" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;">
+                  <i class="fa-solid fa-calendar-day"></i> Hoy
+                </button>
+              </div>
               <input type="date" id="session-date" required>
             </div>
 
@@ -2221,6 +2226,96 @@ Por ejemplo:
       <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary" onclick="closeCalendarDayModal()">Cerrar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR SESIÓN (CAMBIAR FECHA / AJUSTAR DETALLES) -->
+  <div class="modal-backdrop" id="edit-session-modal">
+    <div class="modal-content" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="logo-icon" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(0, 242, 254, 0.1); color: #0284c7;">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h3 class="card-title" style="margin: 0; font-size: 1.2rem;">Editar Sesión</h3>
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Modifica la fecha, cuentas o notas de esta sesión</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeEditSessionModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="edit-session-form" onsubmit="handleSaveEditedSession(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; margin: 0;">
+        <input type="hidden" id="edit-session-id">
+        <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+          
+          <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label" for="edit-session-date"><i class="fa-regular fa-calendar"></i> Fecha de la Sesión</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="date" id="edit-session-date" class="form-control" required style="font-weight: 700;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="setEditSessionDateToday()" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-calendar-day"></i> Hoy
+              </button>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Puedes mover esta sesión a cualquier fecha (por ejemplo, de viernes 11 a hoy lunes 14).
+            </small>
+          </div>
+
+          <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+            <div class="form-group">
+              <label class="form-label" for="edit-session-timeslot"><i class="fa-regular fa-clock"></i> Horario / Turno</label>
+              <select id="edit-session-timeslot" class="form-control">
+                <option value="New York Open (8:00 AM - 11:30 AM)">New York Open (8:00 AM - 11:30 AM)</option>
+                <option value="London Open (3:00 AM - 6:00 AM)">London Open (3:00 AM - 6:00 AM)</option>
+                <option value="Asia / Tokyo (7:00 PM - 11:00 PM)">Asia / Tokyo (7:00 PM - 11:00 PM)</option>
+                <option value="Fuera de Horarios / Scalping">Fuera de Horarios / Scalping</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-session-bias"><i class="fa-solid fa-compass"></i> Sesgo (Bias)</label>
+              <select id="edit-session-bias" class="form-control">
+                <option value="Alcista (Bullish)">Alcista (Bullish)</option>
+                <option value="Bajista (Bearish)">Bajista (Bearish)</option>
+                <option value="Neutral / Rango">Neutral / Rango</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+            <div class="form-group">
+              <label class="form-label" for="edit-session-discipline"><i class="fa-solid fa-shield-halved"></i> Disciplina (1-10)</label>
+              <input type="number" id="edit-session-discipline" class="form-control" min="1" max="10" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-session-adherence"><i class="fa-solid fa-clipboard-check"></i> Cumplimiento</label>
+              <select id="edit-session-adherence" class="form-control">
+                <option value="100% - Ejecución Perfecta según el plan">100% - Ejecución Perfecta</option>
+                <option value="80% - Desviación Menor">80% - Desviación Menor</option>
+                <option value="50% - Operación Fuera de Plan">50% - Operación Fuera de Plan</option>
+                <option value="0% - Tilt / Ruptura de Reglas">0% - Tilt / Ruptura de Reglas</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label" for="edit-session-takeaway"><i class="fa-regular fa-lightbulb"></i> Lección Clave / Retrospectiva</label>
+            <textarea id="edit-session-takeaway" class="form-control" rows="3" placeholder="¿Qué aprendiste hoy?"></textarea>
+          </div>
+
+          <div id="edit-session-trades-summary" style="background: var(--bg-card-hover); padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.82rem;">
+            <!-- Summary of trades & PnL dynamically rendered -->
+          </div>
+
+        </div>
+
+        <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditSessionModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Guardar Cambios</button>
+        </div>
+      </form>
     </div>
   </div>
 

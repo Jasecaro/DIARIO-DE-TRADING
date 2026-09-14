@@ -114,9 +114,26 @@ function saveUserAccounts() {
   localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(state.userAccounts));
 }
 
+// Helper para obtener fecha local en formato YYYY-MM-DD (evita desfases de UTC)
+function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function setSessionDateToday() {
+  const dateInput = document.getElementById('session-date');
+  if (dateInput) {
+    dateInput.value = getLocalDateString();
+    showToast(`Fecha fijada a hoy (${dateInput.value})`, 'info');
+  }
+}
+
 function initializeDefaults() {
-  // Set today's date in form
-  const today = new Date().toISOString().split('T')[0];
+  // Set today's local date in form
+  const today = getLocalDateString();
   const dateInput = document.getElementById('session-date');
   if (dateInput) dateInput.value = today;
 
@@ -151,6 +168,11 @@ function switchTab(tabId) {
 
   if (tabId === 'home') {
     renderHomeMetrics();
+  } else if (tabId === 'new-session') {
+    const dateInput = document.getElementById('session-date');
+    if (dateInput && (!state.currentDraftTrades || state.currentDraftTrades.length === 0)) {
+      dateInput.value = getLocalDateString();
+    }
   } else if (tabId === 'dashboard') {
     renderDashboard();
   } else if (tabId === 'history') {
@@ -1083,6 +1105,10 @@ function handleSaveSession(event) {
     state.currentDraftTrades = [];
     renderDraftTradesTable();
     goToStep(1);
+
+    // Reset date input to current local date
+    const dateInputEl = document.getElementById('session-date');
+    if (dateInputEl) dateInputEl.value = getLocalDateString();
 
     showToast('¡Sesión de trading guardada con éxito!', 'success');
     switchTab('dashboard');
@@ -2083,6 +2109,52 @@ function openCalendarDayDetails(dateStr) {
     `;
   }
 
+  // Lista de Sesiones Registradas este día con opciones de edición y reubicación
+  if (sessions.length > 0) {
+    const todayStr = getLocalDateString();
+    bodyHtml += `
+      <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-layer-group" style="color: var(--accent-primary);"></i> Sesiones registradas en esta fecha (${sessions.length})
+          </h4>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+    `;
+
+    sessions.forEach((s, sIdx) => {
+      const isWrongDay = (s.date !== todayStr);
+      const isWin = (s.netPnl || 0) >= 0;
+      const pnlColor = isWin ? 'var(--profit)' : 'var(--loss)';
+      const tradesCount = (s.trades || []).length;
+      
+      bodyHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-hover); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.6rem;">
+          <div style="font-size: 0.83rem;">
+            <span style="font-weight: 700; color: var(--text-main);">${s.account || 'Cuenta'}</span> &bull; 
+            <span style="color: var(--text-muted);">${s.timeSlot || 'Turno'}</span>
+            <span style="margin-left: 8px; font-weight: 800; color: ${pnlColor}; font-family: var(--font-mono);">
+              ${isWin ? '+' : ''}$${(s.netPnl || 0).toFixed(2)}
+            </span>
+            ${s.noTrades ? '<span class="badge badge-no-trades" style="margin-left: 6px; font-size: 0.68rem; padding: 2px 6px;">Día de Paciencia</span>' : `<span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); font-size: 0.68rem; padding: 2px 6px; margin-left: 6px;">${tradesCount} trade(s)</span>`}
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            ${isWrongDay ? `
+              <button type="button" class="btn btn-warning btn-xs" onclick="quickMoveSessionToToday('${s.id}')" title="Mover esta sesión a hoy (${todayStr})" style="font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-arrow-right"></i> Mover a Hoy
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSessionModal('${s.id}')" title="Editar detalles o cambiar fecha de la sesión" style="display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-pen-to-square"></i> Editar Fecha
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    bodyHtml += `</div></div>`;
+  }
+
   body.innerHTML = bodyHtml;
   modal.classList.add('active');
 }
@@ -2432,12 +2504,15 @@ function renderHistory() {
             <h3 class="card-title">${s.date} &mdash; ${s.account}</h3>
             <p style="font-size: 0.8rem; color: var(--text-muted);">${s.timeSlot} | Bias: ${s.bias} | Emoción: ${s.preEmotion}</p>
           </div>
-          <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <span class="badge ${pnlClass}" style="font-size: 1rem; padding: 0.4rem 0.8rem;">$${s.netPnl.toFixed(2)}</span>
-            <button class="btn btn-secondary btn-sm" onclick="exportSingleSessionReport('${s.id}')">
+            <button class="btn btn-secondary btn-sm" onclick="openEditSessionModal('${s.id}')" title="Editar sesión o cambiar fecha">
+              <i class="fa-solid fa-pen-to-square"></i> Editar
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportSingleSessionReport('${s.id}')" title="Exportar informe Markdown">
               <i class="fa-solid fa-brain"></i> Export MD
             </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">
+            <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')" title="Eliminar sesión">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -5351,5 +5426,133 @@ function copyPromptToClipboard(cardEl) {
     showToast('No se pudo copiar automáticamente', 'warning');
   });
 }
+
+// ==========================================================================
+// GESTIÓN Y EDICIÓN DE SESIONES / CAMBIO DE FECHA
+// ==========================================================================
+function openEditSessionModal(sessionId) {
+  const s = (state.sessions || []).find(x => x.id === sessionId);
+  if (!s) {
+    showToast('Sesión no encontrada', 'danger');
+    return;
+  }
+
+  const idInput = document.getElementById('edit-session-id');
+  const dateInput = document.getElementById('edit-session-date');
+  const timeslotInput = document.getElementById('edit-session-timeslot');
+  const biasInput = document.getElementById('edit-session-bias');
+  const disciplineInput = document.getElementById('edit-session-discipline');
+  const adherenceInput = document.getElementById('edit-session-adherence');
+  const takeawayInput = document.getElementById('edit-session-takeaway');
+
+  if (idInput) idInput.value = s.id;
+  if (dateInput) dateInput.value = s.date || getLocalDateString();
+  if (timeslotInput) timeslotInput.value = s.timeSlot || 'New York Open (8:00 AM - 11:30 AM)';
+  if (biasInput) biasInput.value = s.bias || 'Alcista (Bullish)';
+  if (disciplineInput) disciplineInput.value = s.disciplineScore || 10;
+  if (adherenceInput) adherenceInput.value = s.adherence || '100% - Ejecución Perfecta según el plan';
+  if (takeawayInput) takeawayInput.value = s.takeaway || '';
+
+  const summaryEl = document.getElementById('edit-session-trades-summary');
+  if (summaryEl) {
+    const tradesCount = (s.trades || []).length;
+    const isWin = (s.netPnl || 0) >= 0;
+    const pnlColor = isWin ? 'var(--profit)' : 'var(--loss)';
+    summaryEl.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <strong>${s.account || 'Cuenta'}</strong> &bull; ${tradesCount} operación(es)
+          ${s.noTrades ? '<span class="badge badge-no-trades" style="margin-left: 6px; font-size: 0.7rem;">Día de Paciencia</span>' : ''}
+        </div>
+        <div style="font-weight: 800; color: ${pnlColor}; font-size: 1.05rem; font-family: var(--font-mono);">
+          ${isWin ? '+' : ''}$${(s.netPnl || 0).toFixed(2)} USD
+        </div>
+      </div>
+    `;
+  }
+
+  const modal = document.getElementById('edit-session-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeEditSessionModal() {
+  const modal = document.getElementById('edit-session-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function setEditSessionDateToday() {
+  const input = document.getElementById('edit-session-date');
+  if (input) {
+    input.value = getLocalDateString();
+    showToast(`Fecha cambiada a hoy (${input.value})`, 'info');
+  }
+}
+
+function handleSaveEditedSession(e) {
+  if (e) e.preventDefault();
+  const id = document.getElementById('edit-session-id')?.value;
+  const s = (state.sessions || []).find(x => x.id === id);
+  if (!s) {
+    showToast('Sesión no encontrada', 'danger');
+    return;
+  }
+
+  const oldDate = s.date;
+  const newDate = document.getElementById('edit-session-date')?.value || s.date;
+  s.date = newDate;
+  s.timeSlot = document.getElementById('edit-session-timeslot')?.value || s.timeSlot;
+  s.bias = document.getElementById('edit-session-bias')?.value || s.bias;
+  s.disciplineScore = parseInt(document.getElementById('edit-session-discipline')?.value) || s.disciplineScore;
+  s.adherence = document.getElementById('edit-session-adherence')?.value || s.adherence;
+  s.takeaway = document.getElementById('edit-session-takeaway')?.value || s.takeaway;
+
+  // Actualizar también la fecha en los trades registrados
+  if (Array.isArray(s.trades)) {
+    s.trades.forEach(t => {
+      t.date = newDate;
+    });
+  }
+
+  saveToLocalStorage();
+
+  if (state.currentUser && supabaseClient) {
+    saveSessionToCloud(s);
+  }
+
+  renderDashboard();
+  renderHistory();
+  if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
+
+  closeEditSessionModal();
+  closeCalendarDayModal();
+
+  showToast(`¡Sesión actualizada! Movida de ${oldDate} al ${newDate}`, 'success');
+}
+
+// Mover sesión rápidamente al día de hoy en un clic
+function quickMoveSessionToToday(sessionId) {
+  const s = (state.sessions || []).find(x => x.id === sessionId);
+  if (!s) return;
+
+  const todayStr = getLocalDateString();
+  const oldDate = s.date;
+  s.date = todayStr;
+  if (Array.isArray(s.trades)) {
+    s.trades.forEach(t => { t.date = todayStr; });
+  }
+
+  saveToLocalStorage();
+  if (state.currentUser && supabaseClient) {
+    saveSessionToCloud(s);
+  }
+
+  renderDashboard();
+  renderHistory();
+  if (typeof generateNotebookLMReport === 'function') generateNotebookLMReport();
+  closeCalendarDayModal();
+
+  showToast(`¡Sesión movida con éxito al día de hoy (${todayStr})!`, 'success');
+}
+
 
 
