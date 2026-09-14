@@ -1,5 +1,5 @@
 -- ==============================================================================
--- DIARIO DE TRADING & PSICOLOGÍA - ESQUEMA DE BASE DE DATOS SUPABASE
+-- TheRaiseTrader - ESQUEMA DE BASE DE DATOS SUPABASE
 -- Tablas y Políticas de Seguridad Row Level Security (RLS)
 -- ==============================================================================
 

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TRADING JOURNAL & PSYCHOLOGY TRACKER - APPLICATION LOGIC
+   TheRaiseTrader - APPLICATION LOGIC
    NotebookLM Integration & 3-Phase Session Workflow
    ========================================================================== */
 
@@ -178,7 +178,7 @@ function updateTopbarTitle(tabId) {
     'notebooklm': { title: 'Reportes NotebookLM', subtitle: 'Generador de Informes Analíticos' }
   };
 
-  const current = meta[tabId] || { title: 'Trading Journal', subtitle: 'Diario Profesional' };
+  const current = meta[tabId] || { title: 'TheRaiseTrader', subtitle: 'Diario Profesional' };
   titleEl.textContent = current.title;
   if (subEl) subEl.textContent = current.subtitle;
 }
@@ -2837,7 +2837,7 @@ function buildDailyPersonalHTML(s) {
   let html = `
     <div class="personal-report-header" style="border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div>
-        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">Informe Diario de Trading</h2>
+        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">TheRaiseTrader • Informe Diario</h2>
         <p style="color: #64748b !important; font-size: 0.9rem;">${s.date} &bull; ${s.timeSlot} &bull; ${s.account}</p>
       </div>
       <div>
@@ -3336,7 +3336,7 @@ function copyCleanTextToClipboard() {
 
 function buildDailyMarkdown(s) {
   const isProfit = s.netPnl >= 0;
-  let md = `# DIARIO DE TRADING & PSICOLOGÍA - REPORTE DIARIO\n`;
+  let md = `# TheRaiseTrader - REPORTE DIARIO\n`;
   md += `**Fecha:** ${s.date} | **Hora/Turno:** ${s.timeSlot} | **Cuenta:** ${s.account}\n`;
   md += `**Resultado Neto (P&L):** $${s.netPnl.toFixed(2)} (${isProfit ? 'GANANCIA' : 'PÉRDIDA'})\n`;
   md += `**Índice de Disciplina:** ${s.disciplineScore}/10 | **Cumplimiento del Plan:** ${s.adherence}\n\n`;
@@ -3468,7 +3468,7 @@ function buildConsolidatedMarkdown(rangeType) {
 
   const fullHeader = periodSubtitle ? `${title} (${periodSubtitle})` : title;
 
-  let md = `# DIARIO DE TRADING - REPORTE CONSOLIDADO DETALLADO (${fullHeader})\n`;
+  let md = `# TheRaiseTrader - REPORTE CONSOLIDADO DETALLADO (${fullHeader})\n`;
   md += `**Período:** ${dateRangeStr} (${relevant.length} sesiones en estricto orden cronológico)\n`;
   md += `**Nota para NotebookLM:** Este archivo consolida los reportes completos de **${relevant.length} sesiones** organizadas en estricto orden cronológico (del ${dateRangeStr}) en un solo documento para optimizar el límite de 50 archivos de tu libreta y permitir un análisis evolutivo de inicio a fin.\n\n`;
   
@@ -3560,7 +3560,7 @@ function downloadMarkdownFile() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Trading_Journal_${periodTag}_${new Date().toISOString().split('T')[0]}.md`;
+  a.download = `TheRaiseTrader_${periodTag}_${new Date().toISOString().split('T')[0]}.md`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('Archivo Markdown descargado', 'success');
@@ -3571,7 +3571,7 @@ function exportBackupJSON() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.sessions, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `trading_journal_backup_${new Date().toISOString().split('T')[0]}.json`);
+  downloadAnchor.setAttribute("download", `TheRaiseTrader_backup_${new Date().toISOString().split('T')[0]}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -3740,7 +3740,7 @@ function clearDemoData() {
       showToast(`¡Se eliminaron ${demoSessionsCount} sesiones demo!`, 'success');
     }
   } else {
-    if (confirm('No se encontraron datos demo. ¿Deseas eliminar TODAS las sesiones de tu diario de trading?')) {
+    if (confirm('No se encontraron datos demo. ¿Deseas eliminar TODAS las sesiones de TheRaiseTrader?')) {
       state.sessions = [];
       saveToLocalStorage();
       renderDashboard();
