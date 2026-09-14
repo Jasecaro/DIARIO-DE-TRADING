@@ -4724,13 +4724,13 @@ input[type="range"] {
 
 /* Patience Day (Blue/Slate Tint) */
 .cal-day-cell.day-patience {
-  background: rgba(14, 165, 233, 0.07);
-  border-color: rgba(14, 165, 233, 0.32);
+  background: rgba(14, 165, 233, 0.09) !important;
+  border-color: rgba(14, 165, 233, 0.4) !important;
 }
 
 .cal-day-cell.day-patience:hover {
-  border-color: #0284c7;
-  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.18);
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.22);
 }
 
 [data-theme="dark"] .cal-day-cell.day-win {
@@ -4744,8 +4744,8 @@ input[type="range"] {
 }
 
 [data-theme="dark"] .cal-day-cell.day-patience {
-  background: rgba(14, 165, 233, 0.12);
-  border-color: rgba(14, 165, 233, 0.3);
+  background: rgba(14, 165, 233, 0.16) !important;
+  border-color: rgba(14, 165, 233, 0.45) !important;
 }
 
 .cal-day-cell.is-today {
@@ -4789,6 +4789,14 @@ input[type="range"] {
   background: var(--loss);
 }
 
+.cal-day-dot.dot-patience {
+  background: #0284c7;
+}
+
+[data-theme="dark"] .cal-day-dot.dot-patience {
+  background: #38bdf8;
+}
+
 .cal-day-pnl {
   font-family: var(--font-mono);
   font-weight: 800;
@@ -4805,6 +4813,14 @@ input[type="range"] {
 
 .cal-day-pnl.pnl-loss {
   color: var(--loss);
+}
+
+.cal-day-pnl.pnl-patience {
+  color: #0284c7;
+}
+
+[data-theme="dark"] .cal-day-pnl.pnl-patience {
+  color: #38bdf8;
 }
 
 .cal-day-pnl.pnl-neutral {

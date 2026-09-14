@@ -1753,10 +1753,11 @@ function renderDashboardCalendar(filteredSessions) {
       };
     }
     daysMap[dStr].sessions.push(s);
-    if (s.noTrades) {
+    const isSessPatience = Boolean(s.noTrades || s.checklist?.noTradeSession?.noTrades || !s.trades || s.trades.length === 0);
+    if (isSessPatience) {
       daysMap[dStr].isPatienceDay = true;
     }
-    if (s.chartImage || s.takeaway || (s.psychologyPlan && (s.psychologyPlan.nodo1 || s.psychologyPlan.improve))) {
+    if (s.chartImage || s.sessionChartImage || s.takeaway || s.noTradeNotes || (s.folioMaestro && (s.folioMaestro.noDo?.length || s.folioMaestro.improve))) {
       daysMap[dStr].hasNotesOrMedia = true;
     }
     (s.trades || []).forEach(t => {
@@ -1841,11 +1842,12 @@ function renderDashboardCalendar(filteredSessions) {
         const winRate = ((winTrades / dayData.trades.length) * 100).toFixed(0);
         pnlFormatted = formatCompactPnl(dayData.netPnl);
         subText = `${dayData.trades.length} ${dayData.trades.length === 1 ? 'trade' : 'trades'} • ${winRate}%`;
-      } else if (dayData.isPatienceDay) {
+      } else if (dayData.isPatienceDay || dayData.sessions.length > 0) {
         patienceDays++;
         cellClass = 'day-patience';
         pnlFormatted = '$0.00';
         subText = '🛡️ Paciencia';
+        dotClass = 'dot-patience';
       } else {
         cellClass = '';
         pnlFormatted = '';
@@ -1864,7 +1866,7 @@ function renderDashboardCalendar(filteredSessions) {
               ${dotHtml}
             </div>
           </div>
-          <div class="cal-day-pnl ${dayData.netPnl > 0 ? 'pnl-win' : (dayData.netPnl < 0 ? 'pnl-loss' : 'pnl-neutral')}">
+          <div class="cal-day-pnl ${dayData.netPnl > 0 ? 'pnl-win' : (dayData.netPnl < 0 ? 'pnl-loss' : (dayData.isPatienceDay || dayData.sessions.length > 0 ? 'pnl-patience' : 'pnl-neutral'))}">
             ${pnlFormatted}
           </div>
           <div class="cal-day-sub">
@@ -1960,7 +1962,8 @@ function openCalendarDayDetails(dateStr) {
   let patienceSessions = [];
 
   sessions.forEach(s => {
-    if (s.noTrades) {
+    const isPatience = Boolean(s.noTrades || s.checklist?.noTradeSession?.noTrades || !s.trades || s.trades.length === 0);
+    if (isPatience) {
       patienceSessions.push(s);
     }
     (s.trades || []).forEach(t => {
@@ -2008,11 +2011,12 @@ function openCalendarDayDetails(dateStr) {
     `;
 
     patienceSessions.forEach(ps => {
-      const reason = ps.mistakes && ps.mistakes.includes('Paciencia') ? ps.mistakes : (ps.noTradeReason || 'Mercado sin setup claro / Cumplimiento del plan');
-      const chartHtml = ps.chartImage ? `
+      const reason = ps.noTradeReason || ps.checklist?.noTradeSession?.reason || (ps.mistakes && ps.mistakes.includes('Paciencia') ? ps.mistakes : (ps.takeaway || 'Día de Paciencia • Sin operaciones ejecutadas según el plan'));
+      const chartImg = ps.chartImage || ps.sessionChartImage || ps.checklist?.noTradeSession?.chartImage;
+      const chartHtml = chartImg ? `
         <div style="margin-top: 0.75rem;">
           <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Captura del Gráfico:</span><br>
-          <img src="${ps.chartImage}" class="chart-thumbnail" style="max-height: 140px; margin-top: 4px;" onclick="openLightbox('${ps.chartImage}')" title="Ver pantallazo full size">
+          <img src="${chartImg}" class="chart-thumbnail" style="max-height: 140px; margin-top: 4px;" onclick="openLightbox('${chartImg}')" title="Ver pantallazo full size">
         </div>
       ` : '';
 
@@ -2533,7 +2537,7 @@ function renderHistory() {
           </div>
         ` : ''}
 
-        ${(s.noTrades || s.checklist?.noTradeSession?.noTrades) ? `
+        ${(s.noTrades || s.checklist?.noTradeSession?.noTrades || !s.trades || s.trades.length === 0) ? `
           <div class="no-trade-history-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
               <span class="badge-no-trades"><i class="fa-solid fa-shield-halved"></i> DÍA DE PACIENCIA • SIN OPERACIONES</span>
