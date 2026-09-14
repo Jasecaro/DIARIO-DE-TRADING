@@ -158,7 +158,7 @@ function switchTab(tabId) {
   } else if (tabId === 'strategy') {
     initStrategyTab();
   } else if (tabId === 'notebooklm') {
-    populateSessionSelect();
+    populateReportSelectors();
     generateNotebookLMReport();
   }
 }
@@ -2578,11 +2578,33 @@ function deleteSession(id) {
 }
 
 // NOTEBOOKLM MARKDOWN REPORT GENERATOR
+
+// Helper para calcular lunes, viernes y domingo de una fecha ISO sin desfase de zona horaria
+function getMondayAndSunday(dateStr) {
+  if (!dateStr || !dateStr.includes('-')) return { monday: '', sunday: '', friday: '' };
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const diffToMon = day === 0 ? -6 : 1 - day;
+  const mon = new Date(y, m - 1, d + diffToMon);
+  const sun = new Date(y, m - 1, d + diffToMon + 6);
+  const fri = new Date(y, m - 1, d + diffToMon + 4);
+
+  const fmt = (dt) => {
+    const yr = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const da = String(dt.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${da}`;
+  };
+
+  return { monday: fmt(mon), sunday: fmt(sun), friday: fmt(fri) };
+}
+
 function populateSessionSelect() {
   const select = document.getElementById('report-session-id');
   if (!select) return;
 
-  if (state.sessions.length === 0) {
+  if (!state.sessions || state.sessions.length === 0) {
     select.innerHTML = '<option value="">No hay sesiones registradas</option>';
     return;
   }
@@ -2590,6 +2612,145 @@ function populateSessionSelect() {
   select.innerHTML = state.sessions.map(s => `
     <option value="${s.id}">${s.date} - ${s.account} ($${s.netPnl.toFixed(2)})</option>
   `).join('');
+}
+
+function populateWeekSelect() {
+  const select = document.getElementById('report-week-id');
+  if (!select) return;
+
+  const prevValue = select.value;
+
+  if (!state.sessions || state.sessions.length === 0) {
+    select.innerHTML = '<option value="">No hay sesiones registradas</option>';
+    return;
+  }
+
+  const weeksMap = new Map();
+  state.sessions.forEach(s => {
+    if (!s.date) return;
+    const { monday, sunday, friday } = getMondayAndSunday(s.date.trim());
+    if (!monday || !sunday) return;
+    const key = `${monday}_${sunday}`;
+    if (!weeksMap.has(key)) {
+      weeksMap.set(key, { monday, sunday, friday, sessions: [] });
+    }
+    weeksMap.get(key).sessions.push(s);
+  });
+
+  const sortedWeeks = Array.from(weeksMap.values()).sort((a, b) => b.monday.localeCompare(a.monday));
+
+  if (sortedWeeks.length === 0) {
+    select.innerHTML = '<option value="">No hay semanas registradas</option>';
+    return;
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const currentWeek = getMondayAndSunday(todayStr);
+  const lastWeekDate = new Date();
+  lastWeekDate.setDate(lastWeekDate.getDate() - 7);
+  const lastWeek = getMondayAndSunday(lastWeekDate.toISOString().split('T')[0]);
+
+  let html = '';
+  sortedWeeks.forEach((w) => {
+    const pnl = w.sessions.reduce((acc, s) => acc + (s.netPnl || 0), 0);
+    const pnlSign = pnl >= 0 ? '+' : '-';
+    const pnlFormatted = `${pnlSign}$${Math.abs(pnl).toFixed(2)}`;
+
+    let tag = '';
+    if (w.monday === currentWeek.monday) {
+      tag = ' [Esta Semana]';
+    } else if (w.monday === lastWeek.monday) {
+      tag = ' [Semana Pasada]';
+    }
+
+    const monParts = w.monday.split('-');
+    const friParts = w.friday.split('-');
+    const labelDate = `${monParts[2]}/${monParts[1]} al ${friParts[2]}/${friParts[1]}/${monParts[0]}`;
+
+    html += `<option value="${w.monday}_${w.sunday}">Semana ${labelDate}${tag} &mdash; ${w.sessions.length} sesión(es) (${pnlFormatted})</option>`;
+  });
+
+  html += `<option value="last_7_days">🔄 Últimos 7 días móviles (Dinámico)</option>`;
+  select.innerHTML = html;
+
+  // Restaurar selección previa si existe, o usar la semana más reciente
+  if (prevValue && Array.from(select.options).some(opt => opt.value === prevValue)) {
+    select.value = prevValue;
+  } else if (sortedWeeks.length > 0) {
+    select.value = `${sortedWeeks[0].monday}_${sortedWeeks[0].sunday}`;
+  }
+}
+
+function populateMonthSelect() {
+  const select = document.getElementById('report-month-id');
+  if (!select) return;
+
+  const prevValue = select.value;
+
+  if (!state.sessions || state.sessions.length === 0) {
+    select.innerHTML = '<option value="">No hay sesiones registradas</option>';
+    return;
+  }
+
+  const monthsMap = new Map();
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  state.sessions.forEach(s => {
+    if (!s.date || !s.date.includes('-')) return;
+    const parts = s.date.trim().split('-');
+    const y = parts[0];
+    const m = parts[1];
+    const key = `${y}-${m}`;
+    if (!monthsMap.has(key)) {
+      monthsMap.set(key, { year: y, month: m, sessions: [] });
+    }
+    monthsMap.get(key).sessions.push(s);
+  });
+
+  const sortedMonths = Array.from(monthsMap.values()).sort((a, b) => b.year.localeCompare(a.year) || b.month.localeCompare(a.month));
+
+  if (sortedMonths.length === 0) {
+    select.innerHTML = '<option value="">No hay meses registrados</option>';
+    return;
+  }
+
+  const now = new Date();
+  const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  let html = '';
+  sortedMonths.forEach(m => {
+    const pnl = m.sessions.reduce((acc, s) => acc + (s.netPnl || 0), 0);
+    const pnlSign = pnl >= 0 ? '+' : '-';
+    const pnlFormatted = `${pnlSign}$${Math.abs(pnl).toFixed(2)}`;
+
+    const monthName = monthNames[parseInt(m.month, 10) - 1] || m.month;
+    const tag = (`${m.year}-${m.month}` === curKey) ? ' [Mes Actual]' : '';
+
+    html += `<option value="${m.year}-${m.month}">${monthName} ${m.year}${tag} &mdash; ${m.sessions.length} sesión(es) (${pnlFormatted})</option>`;
+  });
+
+  html += `<option value="last_30_days">🔄 Últimos 30 días móviles (Dinámico)</option>`;
+  select.innerHTML = html;
+
+  if (prevValue && Array.from(select.options).some(opt => opt.value === prevValue)) {
+    select.value = prevValue;
+  } else if (sortedMonths.length > 0) {
+    select.value = `${sortedMonths[0].year}-${sortedMonths[0].month}`;
+  }
+}
+
+function populateReportSelectors() {
+  populateSessionSelect();
+  populateWeekSelect();
+  populateMonthSelect();
+}
+
+function handleReportTypeChange() {
+  populateReportSelectors();
+  generateNotebookLMReport();
 }
 
 let currentReportMode = 'notebooklm';
@@ -2630,14 +2791,26 @@ function switchReportMode(mode) {
 }
 
 function generateNotebookLMReport() {
-  const reportType = document.getElementById('report-type')?.value || 'daily';
+  const reportType = document.getElementById('report-type')?.value || 'weekly';
   const sessionSelectContainer = document.getElementById('session-select-container');
+  const weekSelectContainer = document.getElementById('week-select-container');
+  const monthSelectContainer = document.getElementById('month-select-container');
   const markdownOutput = document.getElementById('markdown-output');
   const personalOutput = document.getElementById('personal-output');
   if (!markdownOutput || !personalOutput) return;
 
+  // Alternar visibilidad de contenedores según tipo de reporte
+  if (sessionSelectContainer) sessionSelectContainer.style.display = (reportType === 'daily') ? 'flex' : 'none';
+  if (weekSelectContainer) weekSelectContainer.style.display = (reportType === 'weekly') ? 'flex' : 'none';
+  if (monthSelectContainer) monthSelectContainer.style.display = (reportType === 'monthly') ? 'flex' : 'none';
+
+  // Si los selectores de semana no tienen opciones, poblarlos automáticamente
+  const weekSelect = document.getElementById('report-week-id');
+  if (weekSelect && weekSelect.children.length === 0) {
+    populateReportSelectors();
+  }
+
   if (reportType === 'daily') {
-    if (sessionSelectContainer) sessionSelectContainer.style.display = 'flex';
     const selectedId = document.getElementById('report-session-id')?.value;
     const session = state.sessions.find(s => s.id === selectedId) || state.sessions[0];
 
@@ -2650,7 +2823,6 @@ function generateNotebookLMReport() {
     markdownOutput.innerText = buildDailyMarkdown(session);
     personalOutput.innerHTML = buildDailyPersonalHTML(session);
   } else {
-    if (sessionSelectContainer) sessionSelectContainer.style.display = 'none';
     markdownOutput.innerText = buildConsolidatedMarkdown(reportType);
     personalOutput.innerHTML = buildConsolidatedPersonalHTML(reportType);
   }
@@ -2889,14 +3061,117 @@ function buildDailyPersonalHTML(s) {
   return html;
 }
 
-function buildConsolidatedPersonalHTML(rangeType) {
-  let daysLimit = 7;
-  let title = 'Semanal';
-  if (rangeType === 'monthly') { daysLimit = 30; title = 'Mensual'; }
-  if (rangeType === 'yearly') { daysLimit = 365; title = 'Anual'; }
-  if (rangeType === 'all') { daysLimit = 9999; title = 'Histórico Completo'; }
+// Helper para restar días a una fecha ISO (YYYY-MM-DD) sin desfase de zona horaria UTC
+function getDateNDaysAgo(dateStr, n) {
+  if (!dateStr || !dateStr.includes('-')) return '';
+  const parts = dateStr.split('-');
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  d.setDate(d.getDate() - n);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-  const relevant = state.sessions.slice(0, daysLimit);
+// Helper to retrieve and sort sessions for consolidated reports in strict chronological order (oldest to newest)
+function getConsolidatedSessions(rangeType) {
+  if (!state.sessions || state.sessions.length === 0) return [];
+
+  // Ordenar primero de más reciente a más antiguo para identificar con precisión la última sesión
+  const sortedDesc = [...state.sessions].sort((a, b) => {
+    const cmp = (b.date || '').trim().localeCompare((a.date || '').trim());
+    if (cmp !== 0) return cmp;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+
+  let relevant = [];
+
+  if (rangeType === 'all') {
+    relevant = [...sortedDesc];
+  } else if (rangeType === 'weekly') {
+    const selectedWeek = document.getElementById('report-week-id')?.value;
+    if (selectedWeek && selectedWeek !== 'last_7_days' && selectedWeek.includes('_')) {
+      const [monday, sunday] = selectedWeek.split('_');
+      relevant = sortedDesc.filter(s => {
+        const d = (s.date || '').trim();
+        return d >= monday && d <= sunday;
+      });
+    } else {
+      // Dinámico: Últimos 7 días móviles desde la sesión más reciente
+      const latestSessionDateStr = (sortedDesc[0].date || '').trim();
+      const cutoffStr = getDateNDaysAgo(latestSessionDateStr, 6);
+      relevant = sortedDesc.filter(s => {
+        const d = (s.date || '').trim();
+        return d >= cutoffStr && d <= latestSessionDateStr;
+      });
+      if (relevant.length === 0) {
+        relevant = sortedDesc.slice(0, 7);
+      }
+    }
+  } else if (rangeType === 'monthly') {
+    const selectedMonth = document.getElementById('report-month-id')?.value;
+    if (selectedMonth && selectedMonth !== 'last_30_days' && selectedMonth.includes('-')) {
+      relevant = sortedDesc.filter(s => {
+        const d = (s.date || '').trim();
+        return d.startsWith(selectedMonth);
+      });
+    } else {
+      // Dinámico: Últimos 30 días móviles desde la sesión más reciente
+      const latestSessionDateStr = (sortedDesc[0].date || '').trim();
+      const cutoffStr = getDateNDaysAgo(latestSessionDateStr, 29);
+      relevant = sortedDesc.filter(s => {
+        const d = (s.date || '').trim();
+        return d >= cutoffStr && d <= latestSessionDateStr;
+      });
+      if (relevant.length === 0) {
+        relevant = sortedDesc.slice(0, 30);
+      }
+    }
+  } else if (rangeType === 'yearly') {
+    const latestSessionDateStr = (sortedDesc[0].date || '').trim();
+    const cutoffStr = getDateNDaysAgo(latestSessionDateStr, 364);
+    relevant = sortedDesc.filter(s => {
+      const d = (s.date || '').trim();
+      return d >= cutoffStr && d <= latestSessionDateStr;
+    });
+    if (relevant.length === 0) {
+      relevant = sortedDesc.slice(0, 365);
+    }
+  }
+
+  // Orden cronológico ascendente estricto: la sesión más antigua es el Día 1, la más reciente el último día
+  return relevant.sort((a, b) => {
+    const cmp = (a.date || '').trim().localeCompare((b.date || '').trim());
+    if (cmp !== 0) return cmp;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+}
+
+function buildConsolidatedPersonalHTML(rangeType) {
+  let title = 'Semanal';
+  let periodSubtitle = '';
+  if (rangeType === 'weekly') {
+    const weekSelect = document.getElementById('report-week-id');
+    const selectedWeekVal = weekSelect?.value;
+    if (selectedWeekVal && selectedWeekVal !== 'last_7_days') {
+      const optText = weekSelect.options[weekSelect.selectedIndex]?.text || '';
+      periodSubtitle = optText.split('—')[0].trim();
+    }
+  } else if (rangeType === 'monthly') {
+    title = 'Mensual';
+    const monthSelect = document.getElementById('report-month-id');
+    const selectedMonthVal = monthSelect?.value;
+    if (selectedMonthVal && selectedMonthVal !== 'last_30_days') {
+      const optText = monthSelect.options[monthSelect.selectedIndex]?.text || '';
+      periodSubtitle = optText.split('—')[0].trim();
+    }
+  } else if (rangeType === 'yearly') {
+    title = 'Anual';
+  } else if (rangeType === 'all') {
+    title = 'Histórico Completo';
+  }
+
+  const relevant = getConsolidatedSessions(rangeType);
   if (relevant.length === 0) return '<p class="empty-state" style="color: #64748b !important;">No hay datos suficientes.</p>';
 
   let totalPnl = 0;
@@ -2921,11 +3196,17 @@ function buildConsolidatedPersonalHTML(rangeType) {
   const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
   const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'INF' : '0.00');
 
+  const dateRangeSubtitle = relevant.length > 0
+    ? (relevant[0].date === relevant[relevant.length - 1].date ? relevant[0].date : `${relevant[0].date} &rarr; ${relevant[relevant.length - 1].date}`)
+    : '';
+
+  const headerTitle = periodSubtitle ? `Informe Ejecutivo ${title} (${periodSubtitle})` : `Informe Ejecutivo ${title}`;
+
   let html = `
     <div class="personal-report-header" style="border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem;">
       <div>
-        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">Informe Ejecutivo ${title}</h2>
-        <p style="color: #64748b !important; font-size: 0.9rem;">Consolidado de ${relevant.length} sesiones de trading</p>
+        <h2 class="personal-report-title" style="color: #0f172a !important; font-size: 1.8rem; margin-bottom: 0.25rem;">${headerTitle}</h2>
+        <p style="color: #64748b !important; font-size: 0.9rem;">Consolidado cronológico de ${relevant.length} sesiones de trading (${dateRangeSubtitle})</p>
       </div>
       <div>
         <span class="badge ${totalPnl >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 1.25rem; padding: 0.5rem 1rem;">
@@ -2953,7 +3234,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
       </div>
     </div>
 
-    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 1rem;">Sesiones del Período</h3>
+    <h3 style="font-family: var(--font-heading); color: #0f172a !important; margin-bottom: 1rem;">Sesiones del Período (Orden Cronológico)</h3>
   `;
 
   relevant.forEach((s, idx) => {
@@ -3011,7 +3292,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
           <i class="fa-solid fa-images"></i> ANEXO CONSOLIDADO DE CAPTURAS Y ANÁLISIS GRÁFICO
         </h3>
         <p style="font-size: 0.85rem; color: #64748b !important; margin-bottom: 1rem;">
-          Galería completa de capturas de pantalla registradas en las sesiones del período (${allAnnexTrades.length} imágenes):
+          Galería completa de capturas de pantalla registradas en las sesiones del período (${allAnnexTrades.length} imágenes en orden cronológico):
         </p>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${allAnnexTrades.map((item, idx) => `
@@ -3126,13 +3407,30 @@ function buildDailyMarkdown(s) {
 }
 
 function buildConsolidatedMarkdown(rangeType) {
-  let daysLimit = 7;
   let title = 'SEMANAL';
-  if (rangeType === 'monthly') { daysLimit = 30; title = 'MENSUAL'; }
-  if (rangeType === 'yearly') { daysLimit = 365; title = 'ANUAL'; }
-  if (rangeType === 'all') { daysLimit = 9999; title = 'HISTÓRICO COMPLETO'; }
+  let periodSubtitle = '';
+  if (rangeType === 'weekly') {
+    const weekSelect = document.getElementById('report-week-id');
+    const selectedWeekVal = weekSelect?.value;
+    if (selectedWeekVal && selectedWeekVal !== 'last_7_days') {
+      const optText = weekSelect.options[weekSelect.selectedIndex]?.text || '';
+      periodSubtitle = optText.split('—')[0].trim();
+    }
+  } else if (rangeType === 'monthly') {
+    title = 'MENSUAL';
+    const monthSelect = document.getElementById('report-month-id');
+    const selectedMonthVal = monthSelect?.value;
+    if (selectedMonthVal && selectedMonthVal !== 'last_30_days') {
+      const optText = monthSelect.options[monthSelect.selectedIndex]?.text || '';
+      periodSubtitle = optText.split('—')[0].trim();
+    }
+  } else if (rangeType === 'yearly') {
+    title = 'ANUAL';
+  } else if (rangeType === 'all') {
+    title = 'HISTÓRICO COMPLETO';
+  }
 
-  const relevant = state.sessions.slice(0, daysLimit);
+  const relevant = getConsolidatedSessions(rangeType);
   if (relevant.length === 0) {
     return '# Sin datos suficientes para consolidar.\nPor favor registra sesiones de trading o carga datos demo para generar el reporte.';
   }
@@ -3164,8 +3462,15 @@ function buildConsolidatedMarkdown(rangeType) {
   const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'INF' : '0.00');
   const avgDiscipline = (disciplineSum / relevant.length).toFixed(1);
 
-  let md = `# DIARIO DE TRADING - REPORTE CONSOLIDADO DETALLADO (${title})\n`;
-  md += `**Nota para NotebookLM:** Este archivo consolida los reportes completos de **${relevant.length} sesiones** en un solo documento para optimizar el límite de 50 archivos de tu libreta.\n\n`;
+  const dateRangeStr = relevant.length > 0
+    ? (relevant[0].date === relevant[relevant.length - 1].date ? relevant[0].date : `${relevant[0].date} al ${relevant[relevant.length - 1].date}`)
+    : '';
+
+  const fullHeader = periodSubtitle ? `${title} (${periodSubtitle})` : title;
+
+  let md = `# DIARIO DE TRADING - REPORTE CONSOLIDADO DETALLADO (${fullHeader})\n`;
+  md += `**Período:** ${dateRangeStr} (${relevant.length} sesiones en estricto orden cronológico)\n`;
+  md += `**Nota para NotebookLM:** Este archivo consolida los reportes completos de **${relevant.length} sesiones** organizadas en estricto orden cronológico (del ${dateRangeStr}) en un solo documento para optimizar el límite de 50 archivos de tu libreta y permitir un análisis evolutivo de inicio a fin.\n\n`;
   
   md += `## 📊 RESUMEN EJECUTIVO DEL PERÍODO\n`;
   md += `- **Sesiones Incluidas:** ${relevant.length}\n`;
@@ -3174,25 +3479,25 @@ function buildConsolidatedMarkdown(rangeType) {
   md += `- **Profit Factor:** ${profitFactor}\n`;
   md += `- **Promedio de Disciplina:** ${avgDiscipline}/10\n\n`;
 
-  md += `### TABLA RESUMEN RÁPIDA\n`;
-  md += `| Fecha | Cuenta | Estado Pre | Trades | P&L ($) | Disciplina | Lección Clave |\n`;
-  md += `|---|---|---|---|---|---|---|\n`;
-  relevant.forEach(s => {
-    md += `| ${s.date} | ${s.account} | ${s.preEmotion} | ${s.trades ? s.trades.length : 0} | $${s.netPnl.toFixed(2)} | ${s.disciplineScore}/10 | ${s.takeaway ? s.takeaway.replace(/\|/g, '') : '-'} |\n`;
+  md += `### TABLA RESUMEN RÁPIDA (ORDEN CRONOLÓGICO)\n`;
+  md += `| Sesión | Fecha | Cuenta | Estado Pre | Trades | P&L ($) | Disciplina | Lección Clave |\n`;
+  md += `|---|---|---|---|---|---|---|---|\n`;
+  relevant.forEach((s, idx) => {
+    md += `| Día ${idx + 1} | ${s.date} | ${s.account} | ${s.preEmotion} | ${s.trades ? s.trades.length : 0} | $${s.netPnl.toFixed(2)} | ${s.disciplineScore}/10 | ${s.takeaway ? s.takeaway.replace(/\|/g, '') : '-'} |\n`;
   });
 
   md += `\n---\n\n`;
-  md += `## 📁 DETALLE COMPLETO DE CADA SESIÓN DEL PERÍODO\n\n`;
+  md += `## 📁 DETALLE COMPLETO DE CADA SESIÓN DEL PERÍODO (CRONOLÓGICO)\n\n`;
 
   relevant.forEach((s, idx) => {
-    md += `### [Sesión ${idx + 1}/${relevant.length}] &mdash; Fecha: ${s.date} (${s.account})\n`;
+    md += `### [Sesión ${idx + 1}/${relevant.length}] &mdash; Día ${idx + 1}: ${s.date} (${s.account})\n`;
     md += `- **P&L de la Sesión:** $${s.netPnl.toFixed(2)}\n`;
     md += `- **Turno:** ${s.timeSlot} | **Sesgo:** ${s.bias}\n`;
     md += `- **Estado Emocional Pre-Sesión:** ${s.preEmotion} (Energía: ${s.energyScore}/10)\n`;
     md += `- **Checklist:** Noticias (${s.checklist?.news ? 'Sí' : 'No'}), Niveles (${s.checklist?.levels ? 'Sí' : 'No'}), Riesgo Aceptado (${s.checklist?.acceptLoss ? 'Sí' : 'No'})\n`;
     md += `- **Adherencia al Plan:** ${s.adherence} (Disciplina: ${s.disciplineScore}/10)\n`;
     md += `- **Errores Identificados:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
-    md += `- **Lección Principal / Reflexión:** ${s.takeaway || 'Sin notas adicooles.'}\n\n`;
+    md += `- **Lección Principal / Reflexión:** ${s.takeaway || 'Sin notas adicionales.'}\n\n`;
 
     if (s.trades && s.trades.length > 0) {
       md += `#### Operaciones Ejecutadas en esta Sesión:\n`;
@@ -3211,7 +3516,7 @@ function buildConsolidatedMarkdown(rangeType) {
   });
 
   md += `## 🤖 PROMPT AUDITOR DE PERÍODO PARA NOTEBOOKLM\n`;
-  md += `> *"Actúa como mi Head Risk Manager y Coach de Trading de Prop Firm. Analiza este reporte consolidado ${title.toLowerCase()} que contiene el detalle completo de mis últimas ${relevant.length} sesiones de trading junto con mi Plan de Trading pre-cargado en esta libreta. Identifica patrones emocionales recurrentes (especialmente si caí en el ciclo de auge/crisis por sobreconfianza o tilteo), evalúa mi porcentaje real de cumplimiento de reglas y redacta una auditoría con 4 áreas clave de mejora prioritarias para mi próxima semana de operaciones."*\n`;
+  md += `> *"Actúa como mi Head Risk Manager y Coach de Trading de Prop Firm. Analiza este reporte consolidado ${title.toLowerCase()} que contiene el detalle cronológico de mis ${relevant.length} sesiones (desde el ${dateRangeStr}) junto con mi Plan de Trading pre-cargado en esta libreta. Evalúa mi evolución sesión tras sesión, identifica si caí en el ciclo de auge/crisis (sobreconfianza tras rachas positivas o tilteo tras pérdidas), audita mi apego a las reglas y redacta una auditoría con 4 áreas clave de mejora prioritarias para mi próxima semana operativa."*\n`;
 
   return md;
 }
@@ -3220,7 +3525,7 @@ function buildConsolidatedMarkdown(rangeType) {
 function exportSingleSessionReport(sessionId) {
   switchTab('notebooklm');
   document.getElementById('report-type').value = 'daily';
-  populateSessionSelect();
+  populateReportSelectors();
   document.getElementById('report-session-id').value = sessionId;
   generateNotebookLMReport();
   copyMarkdownToClipboard();
@@ -3237,11 +3542,25 @@ function copyMarkdownToClipboard() {
 
 function downloadMarkdownFile() {
   const text = document.getElementById('markdown-output').innerText;
+  const reportType = document.getElementById('report-type')?.value || 'report';
+  let periodTag = reportType.toUpperCase();
+  if (reportType === 'weekly') {
+    const selectedWeek = document.getElementById('report-week-id')?.value;
+    if (selectedWeek && selectedWeek !== 'last_7_days' && selectedWeek.includes('_')) {
+      periodTag = `SEMANA_${selectedWeek.replace(/_/g, '_al_')}`;
+    }
+  } else if (reportType === 'monthly') {
+    const selectedMonth = document.getElementById('report-month-id')?.value;
+    if (selectedMonth && selectedMonth !== 'last_30_days') {
+      periodTag = `MES_${selectedMonth}`;
+    }
+  }
+
   const blob = new Blob([text], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Trading_Journal_Report_${new Date().toISOString().split('T')[0]}.md`;
+  a.download = `Trading_Journal_${periodTag}_${new Date().toISOString().split('T')[0]}.md`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('Archivo Markdown descargado', 'success');

@@ -1194,18 +1194,35 @@
         <div class="form-grid" style="margin-bottom: 1.5rem;">
           <div class="form-group">
             <label><i class="fa-solid fa-filter"></i> Tipo de Reporte</label>
-            <select id="report-type" onchange="generateNotebookLMReport()">
+            <select id="report-type" onchange="handleReportTypeChange()">
               <option value="daily">Reporte Diario (Individual por Fecha)</option>
-              <option value="weekly">Reporte Semanal Consolidado (Detalle completo - Últimos 7 días)</option>
-              <option value="monthly">Reporte Mensual Consolidado (Detalle completo - Últimos 30 días)</option>
-              <option value="yearly">Reporte Anual Consolidado (Detalle completo - Último año)</option>
-              <option value="all">Reporte Histórico Completo (Todas las sesiones acumuladas)</option>
+              <option value="weekly" selected>Reporte Semanal Consolidado (Por Semana Seleccionada)</option>
+              <option value="monthly">Reporte Mensual Consolidado (Por Mes)</option>
+              <option value="yearly">Reporte Anual Consolidado (Último año)</option>
+              <option value="all">Reporte Histórico Completo (Todas las sesiones)</option>
             </select>
           </div>
 
-          <div class="form-group" id="session-select-container">
+          <!-- Selector de Sesión para Reporte Diario -->
+          <div class="form-group" id="session-select-container" style="display: none;">
             <label><i class="fa-solid fa-calendar-day"></i> Seleccionar Sesión Diaria</label>
             <select id="report-session-id" onchange="generateNotebookLMReport()">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Selector de Semana para Reporte Semanal -->
+          <div class="form-group" id="week-select-container">
+            <label><i class="fa-solid fa-calendar-week"></i> Seleccionar Semana a Auditar</label>
+            <select id="report-week-id" onchange="generateNotebookLMReport()">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Selector de Mes para Reporte Mensual -->
+          <div class="form-group" id="month-select-container" style="display: none;">
+            <label><i class="fa-solid fa-calendar-days"></i> Seleccionar Mes a Auditar</label>
+            <select id="report-month-id" onchange="generateNotebookLMReport()">
               <!-- Populated via JS -->
             </select>
           </div>
