@@ -1040,7 +1040,7 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Hora</th>
+                  <th>Horario / Duración</th>
                   <th>Activo</th>
                   <th>Tipo</th>
                   <th>Entrada ➔ Salida</th>
@@ -1558,7 +1558,20 @@ Por ejemplo:
               <span><i class="fa-regular fa-clock"></i> Hora Entrada</span>
               <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 0.72rem;" onclick="setTradeModalCurrentTime()" title="Poner hora actual">🕒 Ahora</button>
             </label>
-            <input type="time" id="modal-trade-time">
+            <input type="time" id="modal-trade-time" oninput="calculateTradeDurationInModal()">
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fa-solid fa-clock-rotate-left"></i> Hora Salida</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span id="modal-duration-badge" class="badge badge-sm" style="display: none; font-size: 0.72rem; padding: 2px 6px;">
+                  <i class="fa-solid fa-hourglass-half"></i> <span id="modal-duration-text">0m</span>
+                </span>
+                <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 0.72rem;" onclick="setTradeModalCurrentExitTime()" title="Poner hora actual de salida">🕒 Ahora</button>
+              </div>
+            </label>
+            <input type="time" id="modal-trade-exit-time" oninput="calculateTradeDurationInModal()">
           </div>
 
           <div class="form-group">
@@ -1888,7 +1901,7 @@ Por ejemplo:
                 <div class="paper-trade-header">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <strong>TRADE #1</strong>
-                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Entrada: ____ Salida: ____ (Dur: ____)</span>
                   </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
@@ -1919,7 +1932,7 @@ Por ejemplo:
                 <div class="paper-trade-header">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <strong>TRADE #2</strong>
-                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Entrada: ____ Salida: ____ (Dur: ____)</span>
                   </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
@@ -1950,7 +1963,7 @@ Por ejemplo:
                 <div class="paper-trade-header">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <strong>TRADE #3</strong>
-                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Entrada: ____ Salida: ____ (Dur: ____)</span>
                   </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>
@@ -1981,7 +1994,7 @@ Por ejemplo:
                 <div class="paper-trade-header">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <strong>TRADE #4</strong>
-                    <span style="font-size: 0.73rem; font-weight: 600;">Hora: ________</span>
+                    <span style="font-size: 0.73rem; font-weight: 600;">Entrada: ____ Salida: ____ (Dur: ____)</span>
                   </div>
                   <span>P&L: $________________ | R:R: ________</span>
                 </div>

@@ -499,7 +499,72 @@ function setTradeModalCurrentTime() {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const timeInput = document.getElementById('modal-trade-time');
-  if (timeInput) timeInput.value = `${hh}:${mm}`;
+  if (timeInput) {
+    timeInput.value = `${hh}:${mm}`;
+    calculateTradeDurationInModal();
+  }
+}
+
+function setTradeModalCurrentExitTime() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const timeInput = document.getElementById('modal-trade-exit-time');
+  if (timeInput) {
+    timeInput.value = `${hh}:${mm}`;
+    calculateTradeDurationInModal();
+  }
+}
+
+function formatTradeDuration(entryTime, exitTime) {
+  if (!entryTime || !exitTime) return null;
+  const p1 = entryTime.split(':').map(Number);
+  const p2 = exitTime.split(':').map(Number);
+  if (p1.length < 2 || p2.length < 2 || isNaN(p1[0]) || isNaN(p1[1]) || isNaN(p2[0]) || isNaN(p2[1])) return null;
+
+  let diffMinutes = (p2[0] * 60 + p2[1]) - (p1[0] * 60 + p1[1]);
+  if (diffMinutes < 0) {
+    diffMinutes += 24 * 60; // Para trades que cruzan la medianoche
+  }
+
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  if (hours > 0) {
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  }
+  return `${mins}m`;
+}
+
+function getTradeDurationMinutes(entryTime, exitTime) {
+  if (!entryTime || !exitTime) return null;
+  const p1 = entryTime.split(':').map(Number);
+  const p2 = exitTime.split(':').map(Number);
+  if (p1.length < 2 || p2.length < 2 || isNaN(p1[0]) || isNaN(p1[1]) || isNaN(p2[0]) || isNaN(p2[1])) return null;
+
+  let diffMinutes = (p2[0] * 60 + p2[1]) - (p1[0] * 60 + p1[1]);
+  if (diffMinutes < 0) diffMinutes += 24 * 60;
+  return diffMinutes;
+}
+
+function calculateTradeDurationInModal() {
+  const entryInput = document.getElementById('modal-trade-time');
+  const exitInput = document.getElementById('modal-trade-exit-time');
+  const badge = document.getElementById('modal-duration-badge');
+  const textEl = document.getElementById('modal-duration-text');
+  if (!badge || !textEl) return;
+
+  const entryVal = entryInput ? entryInput.value : '';
+  const exitVal = exitInput ? exitInput.value : '';
+
+  if (entryVal && exitVal) {
+    const formatted = formatTradeDuration(entryVal, exitVal);
+    if (formatted) {
+      textEl.innerText = formatted;
+      badge.style.display = 'inline-flex';
+      return;
+    }
+  }
+  badge.style.display = 'none';
 }
 
 function calculatePointsDifference() {
@@ -556,6 +621,7 @@ function openTradeModal(editIndex = -1) {
     document.getElementById('modal-asset').value = trade.asset;
     document.getElementById('modal-direction').value = trade.direction;
     document.getElementById('modal-trade-time').value = trade.time || '';
+    document.getElementById('modal-trade-exit-time').value = trade.exitTime || '';
     document.getElementById('modal-entry-price').value = (trade.entryPrice !== undefined && trade.entryPrice !== null) ? trade.entryPrice : '';
     document.getElementById('modal-exit-price').value = (trade.exitPrice !== undefined && trade.exitPrice !== null) ? trade.exitPrice : '';
     document.getElementById('modal-lots').value = trade.lots;
@@ -567,6 +633,7 @@ function openTradeModal(editIndex = -1) {
     document.getElementById('modal-trade-tags').value = trade.tags || '';
 
     calculatePointsDifference();
+    calculateTradeDurationInModal();
 
     if (trade.chartImage) {
       setImagePreview(trade.chartImage);
@@ -596,7 +663,9 @@ function openTradeModal(editIndex = -1) {
     }
     document.getElementById('modal-entry-price').value = '';
     document.getElementById('modal-exit-price').value = '';
+    document.getElementById('modal-trade-exit-time').value = '';
     calculatePointsDifference();
+    calculateTradeDurationInModal();
 
     document.getElementById('modal-lots').value = '1.0';
     document.getElementById('modal-pnl').value = '350.00';
@@ -857,10 +926,18 @@ function saveTradeFromModal(event) {
     pointsDiff = dir === 'LONG' ? (exitVal - entryVal) : (entryVal - exitVal);
   }
 
+  const timeVal = document.getElementById('modal-trade-time')?.value || '';
+  const exitTimeVal = document.getElementById('modal-trade-exit-time')?.value || '';
+  const durFormatted = formatTradeDuration(timeVal, exitTimeVal);
+  const durMins = getTradeDurationMinutes(timeVal, exitTimeVal);
+
   const tradeData = {
     id: (state.editingTradeIndex >= 0 && state.currentDraftTrades[state.editingTradeIndex]) ? state.currentDraftTrades[state.editingTradeIndex].id : Date.now(),
     account: document.getElementById('modal-trade-account')?.value || 'REPLICATED',
-    time: document.getElementById('modal-trade-time')?.value || '',
+    time: timeVal,
+    exitTime: exitTimeVal,
+    duration: durFormatted,
+    durationMinutes: durMins,
     entryPrice: !isNaN(entryVal) ? entryVal : null,
     exitPrice: !isNaN(exitVal) ? exitVal : null,
     points: pointsDiff,
@@ -948,10 +1025,25 @@ function renderDraftTradesTable() {
       priceHtml = `<span style="font-size: 0.8rem;">Entrada: <strong>${t.entryPrice}</strong></span>`;
     }
 
+    const timeDisplay = t.exitTime ? `${t.time || '--:--'} ➔ ${t.exitTime}` : (t.time || '--:--');
+    const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
+    const durationPill = durVal ? `
+      <div style="margin-top: 3px;">
+        <span class="badge" style="font-size: 0.68rem; padding: 1px 6px; background: rgba(56, 189, 248, 0.12); color: var(--accent-primary); border: 1px solid rgba(56, 189, 248, 0.25);">
+          <i class="fa-solid fa-hourglass-half"></i> ${durVal}
+        </span>
+      </div>
+    ` : '';
+
     return `
       <tr>
         <td><strong>#${idx + 1}</strong></td>
-        <td><span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span></td>
+        <td>
+          <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600; white-space: nowrap;">
+            <i class="fa-regular fa-clock"></i> ${timeDisplay}
+          </div>
+          ${durationPill}
+        </td>
         <td>
           <strong>${t.asset}</strong>
           ${(t.account && t.account !== 'REPLICATED')
@@ -2080,7 +2172,10 @@ function openCalendarDayDetails(dateStr) {
               <span style="font-weight: 800; font-size: 0.95rem;">#${idx + 1} ${t.asset}</span>
               <span class="badge ${dirClass}">${t.direction}</span>
               ${accountBadge}
-              <span style="font-size: 0.8rem; color: var(--text-subtle);"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span>
+              <span style="font-size: 0.8rem; color: var(--text-subtle); display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-regular fa-clock"></i> ${t.exitTime ? `${t.time || '--:--'} ➔ ${t.exitTime}` : (t.time || '--:--')}
+                ${(t.duration || formatTradeDuration(t.time, t.exitTime)) ? ` &bull; <span style="color: var(--accent-primary); font-weight: 700;"><i class="fa-solid fa-hourglass-half"></i> ${t.duration || formatTradeDuration(t.time, t.exitTime)}</span>` : ''}
+              </span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="badge ${pnlClass}" style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 800;">
@@ -2597,9 +2692,16 @@ function renderHistory() {
                     priceStr = `${t.entryPrice}`;
                   }
 
+                  const timeDisplay = t.exitTime ? `${t.time || '--:--'} ➔ ${t.exitTime}` : (t.time || '--:--');
+                  const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
+                  const durHtml = durVal ? `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.68rem; padding: 1px 5px; background: rgba(56, 189, 248, 0.12); color: var(--accent-primary);"><i class="fa-solid fa-hourglass-half"></i> ${durVal}</span></div>` : '';
+
                   return `
                     <tr>
-                      <td><span style="color: var(--text-muted); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${t.time || '--:--'}</span></td>
+                      <td>
+                        <span style="color: var(--text-muted); font-weight: 600; white-space: nowrap;"><i class="fa-regular fa-clock"></i> ${timeDisplay}</span>
+                        ${durHtml}
+                      </td>
                       <td><strong>${t.asset}</strong></td>
                       <td><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
                       <td style="font-size: 0.78rem;">${priceStr}</td>
@@ -3069,10 +3171,14 @@ function buildDailyPersonalHTML(s) {
                 priceStr = `${t.entryPrice}`;
               }
 
+              const timeDisplay = t.exitTime ? `${t.time || '--:--'} - ${t.exitTime}` : (t.time || '--:--');
+              const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
+              const durStr = durVal ? `<br><small style="color: #0284c7; font-weight: 700;">(${durVal})</small>` : '';
+
               return `
                 <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
                   <td class="col-center" style="color: #0f172a !important;"><strong>${idx + 1}</strong></td>
-                  <td class="col-center" style="color: #64748b !important; font-size: 0.82rem; font-weight: 600;">${t.time || '--:--'}</td>
+                  <td class="col-center" style="color: #64748b !important; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">${timeDisplay}${durStr}</td>
                   <td class="col-left" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
                   <td class="col-center"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
                   <td class="col-center" style="font-size: 0.8rem;">${priceStr}</td>
@@ -3462,7 +3568,10 @@ function buildDailyMarkdown(s) {
       const entryStr = (t.entryPrice !== null && t.entryPrice !== undefined) ? t.entryPrice : '-';
       const exitStr = (t.exitPrice !== null && t.exitPrice !== undefined) ? t.exitPrice : '-';
       const ptsStr = (t.points !== null && t.points !== undefined) ? `${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts` : '-';
-      md += `| ${i + 1} | ${t.time || '--:--'} | ${t.asset} | ${t.direction} | ${entryStr} | ${exitStr} | ${ptsStr} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
+      const timeStr = t.exitTime ? `${t.time || '--:--'} a ${t.exitTime}` : (t.time || '--:--');
+      const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
+      const durStr = durVal ? ` (${durVal})` : '';
+      md += `| ${i + 1} | ${timeStr}${durStr} | ${t.asset} | ${t.direction} | ${entryStr} | ${exitStr} | ${ptsStr} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
     });
     md += `\n`;
   } else {
