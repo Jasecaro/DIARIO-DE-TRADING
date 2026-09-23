@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMarketSessionsClock();
   initMindsetQuotes();
   initSidebarState();
+  initImageDropZones();
 });
 
 // Load / Save LocalStorage
@@ -988,7 +989,119 @@ function removeSessionChartPreview() {
   if (prompt) prompt.style.display = 'flex';
 }
 
-// Global Clipboard Paste (Ctrl+V) listener para Modal de Trades y Sesión sin entradas
+// =============================================================================
+// GESTIÓN DE CAPTURA GENERAL DE LA SESIÓN (FASE 3: POST-SESIÓN & RETROSPECTIVA)
+// =============================================================================
+function handlePostSessionChartFile(event) {
+  const file = event.target.files[0];
+  if (file) {
+    processPostSessionImageFile(file);
+  }
+}
+
+function processPostSessionImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showToast('Por favor selecciona un archivo de imagen válido', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 1600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      setPostSessionChartPreview(compressedBase64);
+      showToast('Pantallazo general de la sesión cargado y optimizado', 'success');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setPostSessionChartPreview(base64Src) {
+  const hiddenInput = document.getElementById('post-session-chart-base64');
+  if (hiddenInput) hiddenInput.value = base64Src;
+  const previewImg = document.getElementById('post-session-chart-preview-img');
+  if (previewImg) previewImg.src = base64Src;
+  const wrapper = document.getElementById('post-session-chart-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'block';
+  const prompt = document.getElementById('post-session-upload-prompt');
+  if (prompt) prompt.style.display = 'none';
+}
+
+function removePostSessionChartPreview() {
+  const hiddenInput = document.getElementById('post-session-chart-base64');
+  if (hiddenInput) hiddenInput.value = '';
+  const fileInput = document.getElementById('post-session-chart-file');
+  if (fileInput) fileInput.value = '';
+  const previewImg = document.getElementById('post-session-chart-preview-img');
+  if (previewImg) previewImg.src = '';
+  const wrapper = document.getElementById('post-session-chart-preview-wrapper');
+  if (wrapper) wrapper.style.display = 'none';
+  const prompt = document.getElementById('post-session-upload-prompt');
+  if (prompt) prompt.style.display = 'flex';
+}
+
+// Inicialización de Arrastrar y Soltar (Drag & Drop) para todas las zonas de subida
+function initImageDropZones() {
+  const dropConfigs = [
+    { zoneId: 'drop-zone', handler: processImageFile },
+    { zoneId: 'session-chart-drop-zone', handler: processSessionImageFile },
+    { zoneId: 'post-session-chart-drop-zone', handler: processPostSessionImageFile }
+  ];
+
+  dropConfigs.forEach(({ zoneId, handler }) => {
+    const zone = document.getElementById(zoneId);
+    if (!zone) return;
+
+    ['dragenter', 'dragover'].forEach(eventType => {
+      zone.addEventListener(eventType, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add('drag-over');
+      });
+    });
+
+    ['dragleave', 'dragend'].forEach(eventType => {
+      zone.addEventListener(eventType, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.remove('drag-over');
+      });
+    });
+
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.remove('drag-over');
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        handler(files[0]);
+      }
+    });
+  });
+}
+
+// Global Clipboard Paste (Ctrl+V) listener para Modal de Trades, Sesión sin entradas y Post-Sesión
 document.addEventListener('paste', (event) => {
   const tradeModal = document.getElementById('trade-modal');
   const isTradeModalOpen = tradeModal && tradeModal.classList.contains('active');
@@ -997,7 +1110,10 @@ document.addEventListener('paste', (event) => {
   const isStep2Open = step2 && step2.style.display !== 'none';
   const isNoTradesActive = state.noTradesMode;
 
-  if (!isTradeModalOpen && !(isStep2Open && isNoTradesActive)) return;
+  const step3 = document.getElementById('step-content-3');
+  const isStep3Open = step3 && step3.style.display !== 'none';
+
+  if (!isTradeModalOpen && !(isStep2Open && isNoTradesActive) && !isStep3Open) return;
 
   const items = (event.clipboardData || event.originalEvent.clipboardData).items;
   for (let index in items) {
@@ -1007,6 +1123,9 @@ document.addEventListener('paste', (event) => {
       if (isTradeModalOpen) {
         processImageFile(blob);
         showToast('¡Pantallazo del trade pegado desde el portapapeles!', 'success');
+      } else if (isStep3Open) {
+        processPostSessionImageFile(blob);
+        showToast('¡Pantallazo general de la sesión pegado desde el portapapeles!', 'success');
       } else if (isStep2Open && isNoTradesActive) {
         processSessionImageFile(blob);
         showToast('¡Gráfico de la sesión pegado desde el portapapeles!', 'success');
@@ -1293,6 +1412,13 @@ function handleSaveSession(event) {
     const sessionChartUrl = document.getElementById('session-chart-url')?.value.trim() || '';
     const sessionNoTradeNotes = document.getElementById('session-no-trade-notes')?.value.trim() || '';
 
+    // Captura / Pantallazo General de la Sesión Completa (Fase 3: Post-Sesión)
+    const postSessionChartImg = document.getElementById('post-session-chart-base64')?.value || '';
+    const postSessionChartUrl = document.getElementById('post-session-chart-url')?.value.trim() || '';
+
+    const finalSessionChartImage = postSessionChartImg || sessionChartImg || null;
+    const finalSessionChartUrl = postSessionChartUrl || sessionChartUrl || null;
+
     const session = {
       id: 'session_' + Date.now(),
       date: dateInput?.value || new Date().toISOString().split('T')[0],
@@ -1313,15 +1439,15 @@ function handleSaveSession(event) {
         noTradeSession: isNoTrades ? {
           noTrades: true,
           reason: noTradeReason,
-          chartImage: sessionChartImg,
-          chartUrl: sessionChartUrl,
+          chartImage: finalSessionChartImage,
+          chartUrl: finalSessionChartUrl,
           notes: sessionNoTradeNotes
         } : null
       },
       noTrades: isNoTrades,
       noTradeReason: isNoTrades ? noTradeReason : null,
-      sessionChartImage: isNoTrades ? sessionChartImg : null,
-      sessionChartUrl: isNoTrades ? sessionChartUrl : null,
+      sessionChartImage: finalSessionChartImage,
+      sessionChartUrl: finalSessionChartUrl,
       noTradeNotes: isNoTrades ? sessionNoTradeNotes : null,
       folioMaestro: {
         noDo: [
@@ -1370,7 +1496,7 @@ function handleSaveSession(event) {
     ['session-nodo-1', 'session-nodo-2', 'session-nodo-3', 'session-improve',
      'session-ifthen-feel-1', 'session-ifthen-do-1', 'session-ifthen-feel-2', 'session-ifthen-do-2',
      'session-ifthen-feel-3', 'session-ifthen-do-3', 'session-ifthen-feel-4', 'session-ifthen-do-4',
-     'session-takeaway', 'session-no-trade-notes', 'session-chart-url'].forEach(id => {
+     'session-takeaway', 'session-no-trade-notes', 'session-chart-url', 'post-session-chart-url'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -1379,8 +1505,9 @@ function handleSaveSession(event) {
     document.querySelectorAll('#mistakes-chips .chip').forEach(c => c.classList.remove('selected'));
     if (mistakesInput) mistakesInput.value = '';
 
-    // Reset No Trades State & Draft
+    // Reset No Trades State & Draft & Post-session chart
     removeSessionChartPreview();
+    removePostSessionChartPreview();
     toggleNoTradesMode(false);
     state.currentDraftTrades = [];
     renderDraftTradesTable();
@@ -2983,6 +3110,33 @@ function renderHistory() {
               </tbody>
             </table>
           </div>
+          ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
+            <div style="margin-top: 0.85rem; padding: 0.65rem 0.9rem; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
+                  <img src="${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}" class="chart-thumbnail" style="width: 50px; height: 50px; border-radius: 6px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver pantallazo general de la sesión">
+                ` : ''}
+                <div>
+                  <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 5px;">
+                    <i class="fa-solid fa-camera-retro" style="color: var(--accent-primary);"></i> Pantallazo General de la Sesión Completa
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Captura macro de la jornada registrada en la retrospectiva</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openLightbox('${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}')" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-expand"></i> Ver Pantallazo
+                  </button>
+                ` : ''}
+                ${(s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
+                  <a href="${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Gráfico
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
         ` : '<p style="font-size: 0.8rem; color: var(--text-subtle);">No se registraron trades individuales en esta sesión.</p>')}
       </div>
     `;
@@ -3501,6 +3655,28 @@ function buildDailyPersonalHTML(s) {
     </div>
   `;
 
+  // Captura General de la Sesión Completa (si no es sesión sin operaciones, donde ya se muestra arriba)
+  const generalSessionChart = s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
+  if (!s.noTrades && !s.checklist?.noTradeSession?.noTrades && generalSessionChart) {
+    html += `
+      <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="annex-card" style="background: #ffffff; border: 1.5px solid #cbd5e1; padding: 1.25rem; border-radius: 8px; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-camera-retro" style="color: #4f46e5;"></i> Captura General de la Sesión Completa (Visión Macro del Día)
+            </span>
+            <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5; border: 1px solid rgba(79, 70, 229, 0.25); font-size: 0.75rem;">
+              Retrospectiva & Panorama Diario
+            </span>
+          </div>
+          <div style="text-align: center;">
+            <img src="${generalSessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   // Chart Annex for Daily Report (only for trade-level charts)
   const tradesWithImages = s.trades ? s.trades.filter(t => t.chartImage || t.chartUrl) : [];
   if (tradesWithImages.length > 0) {
@@ -3892,7 +4068,14 @@ function buildDailyMarkdown(s) {
 
   md += `## 3. RETROSPECTIVA & PSICOLOGÍA POST-MERCADO\n`;
   md += `- **Errores Cometidos:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
-  md += `- **Lección Clave del Día:** ${s.takeaway || 'Sin comentarios.'}\n\n`;
+  md += `- **Lección Clave del Día:** ${s.takeaway || 'Sin comentarios.'}\n`;
+  const postSessionChartRef = (s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) 
+    ? '[Pantallazo General de la Sesión Adjunto]' 
+    : ((s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `[Link Gráfico](${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl})` : null);
+  if (postSessionChartRef && !s.noTrades && !s.checklist?.noTradeSession?.noTrades) {
+    md += `- **Pantallazo General de la Sesión:** ${postSessionChartRef}\n`;
+  }
+  md += `\n`;
 
   md += `---\n\n`;
   md += `## PROMPT DE ANÁLISIS PARA NOTEBOOKLM\n`;
