@@ -273,9 +273,9 @@ function openCalendarDayDetails(dateStr) {
     if (isPatience) {
       patienceSessions.push(s);
     }
-    (s.trades || []).forEach(t => {
+    (s.trades || []).forEach((t, tIdx) => {
       if (!isFiltered || !t.account || t.account === 'REPLICATED' || t.account === targetAccount) {
-        allTrades.push({ ...t, sessionAccount: s.account });
+        allTrades.push({ ...t, sessionAccount: s.account, sessionId: s.id, originalTradeIndex: tIdx });
         if (t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS') {
           totalDayPnl += (t.pnl || 0);
         }
@@ -450,7 +450,12 @@ function openCalendarDayDetails(dateStr) {
                 ${(t.duration || formatTradeDuration(t.time, t.exitTime)) ? ` &bull; <span style="color: var(--accent-primary); font-weight: 700;"><i class="fa-solid fa-hourglass-half"></i> ${t.duration || formatTradeDuration(t.time, t.exitTime)}</span>` : ''}
               </span>
             </div>
-            ${rightSideHtml}
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              ${rightSideHtml}
+              <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSavedTradeModal('${t.sessionId}', ${t.originalTradeIndex})" title="Editar este trade" style="padding: 3px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-pen-to-square"></i> Editar
+              </button>
+            </div>
           </div>
 
           ${reasonBanner}

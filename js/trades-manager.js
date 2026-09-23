@@ -304,7 +304,118 @@ function openTradeModal(editIndex = -1, defaultType = 'EXECUTED') {
 }
 
 function closeTradeModal() {
-  document.getElementById('trade-modal').classList.remove('active');
+  state.editingTradeIndex = -1;
+  state.editingSavedTradeContext = null;
+  const modal = document.getElementById('trade-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Edición de Operaciones ya Guardadas en el Historial/Calendario
+function openEditSavedTradeModal(sessionId, tradeIndex) {
+  const s = (state.sessions || []).find(x => x.id === sessionId);
+  if (!s || !s.trades || !s.trades[tradeIndex]) {
+    showToast('Operación no encontrada', 'error');
+    return;
+  }
+
+  const trade = s.trades[tradeIndex];
+  state.editingSavedTradeContext = { sessionId: sessionId, tradeIndex: tradeIndex };
+  state.editingTradeIndex = -1;
+
+  const modal = document.getElementById('trade-modal');
+  const modalTitle = document.getElementById('trade-modal-title');
+  const form = document.getElementById('trade-form');
+
+  // Si estaba en modo sin trades, apagarlo temporalmente para la edición
+  if (state.noTradesMode) {
+    toggleNoTradesMode(false);
+  }
+
+  // Populate trade account selector with session accounts
+  const accSelect = document.getElementById('modal-trade-account');
+  if (accSelect) {
+    const sessionAccounts = s.accountsList && s.accountsList.length > 0 ? s.accountsList : (s.account ? s.account.split(',').map(a => a.trim()) : []);
+    let accOptions = `<option value="REPLICATED">⚡ Replicar en Todas las Cuentas de la Sesión</option>`;
+    sessionAccounts.forEach(acc => {
+      accOptions += `<option value="${acc}">🎯 Solo ${acc}</option>`;
+    });
+    accSelect.innerHTML = accOptions;
+    accSelect.value = trade.account || 'REPLICATED';
+  }
+
+  // Reset image preview
+  removeImagePreview();
+
+  const tradeType = trade.tradeType || 'EXECUTED';
+  setTradeTypeMode(tradeType);
+
+  if (tradeType === 'EXECUTED') {
+    modalTitle.innerHTML = `<i class="fa-solid fa-pen"></i> Editar Trade (#${tradeIndex + 1} • ${s.date})`;
+  } else if (tradeType === 'MISSED') {
+    modalTitle.innerHTML = `<i class="fa-solid fa-pen" style="color: #f59e0b;"></i> Editar Trade Omitido / Se Escapó (#${tradeIndex + 1} • ${s.date})`;
+  } else {
+    modalTitle.innerHTML = `<i class="fa-solid fa-pen" style="color: #38bdf8;"></i> Editar Análisis (#${tradeIndex + 1} • ${s.date})`;
+  }
+
+  document.getElementById('modal-asset').value = trade.asset || 'NQ';
+  document.getElementById('modal-direction').value = trade.direction || 'LONG';
+  document.getElementById('modal-trade-time').value = trade.time || '';
+  document.getElementById('modal-trade-exit-time').value = trade.exitTime || '';
+  document.getElementById('modal-entry-price').value = (trade.entryPrice !== undefined && trade.entryPrice !== null) ? trade.entryPrice : '';
+  document.getElementById('modal-exit-price').value = (trade.exitPrice !== undefined && trade.exitPrice !== null) ? trade.exitPrice : '';
+  document.getElementById('modal-lots').value = trade.lots !== undefined ? trade.lots : 1;
+  document.getElementById('modal-pnl').value = trade.pnl !== undefined ? trade.pnl : 0;
+  document.getElementById('modal-rr').value = trade.rr !== undefined ? trade.rr : 2.5;
+  document.getElementById('modal-setup').value = trade.setup || 'Reversión en Soporte/Resistencia';
+  document.getElementById('modal-chart-url').value = trade.chartUrl || '';
+  document.getElementById('modal-trade-notes').value = trade.notes || '';
+  document.getElementById('modal-trade-tags').value = trade.tags || '';
+
+  // Restore missed / analysis fields
+  const customReasonInput = document.getElementById('modal-missed-custom-reason');
+  if (customReasonInput) customReasonInput.value = trade.customMissedReason || '';
+  const outcomeSelect = document.getElementById('modal-theoretical-outcome');
+  if (outcomeSelect) outcomeSelect.value = trade.theoreticalOutcome || 'TP';
+  const rrTheoretical = document.getElementById('modal-theoretical-rr');
+  if (rrTheoretical) rrTheoretical.value = trade.theoreticalRr || trade.rr || '2.5';
+  const reasonHidden = document.getElementById('modal-missed-reason');
+  if (reasonHidden) reasonHidden.value = trade.missedReason || 'El movimiento fue muy rápido / Sin retroceso';
+
+  // Highlight matching reason chip
+  const chips = document.querySelectorAll('#modal-missed-reasons-chips .chip');
+  let matched = false;
+  chips.forEach(chip => {
+    chip.classList.remove('selected');
+    if (trade.missedReason && chip.innerText.toLowerCase().includes(trade.missedReason.toLowerCase().slice(0, 15))) {
+      chip.classList.add('selected');
+      matched = true;
+    }
+  });
+  if (!matched && trade.customMissedReason) {
+    const otroChip = Array.from(chips).find(c => c.innerText.includes('Otro'));
+    if (otroChip) otroChip.classList.add('selected');
+  }
+
+  calculatePointsDifference();
+  calculateTradeDurationInModal();
+
+  if (trade.chartImage) {
+    setImagePreview(trade.chartImage);
+  }
+
+  // Sync modal trade chips
+  const tradeTags = (trade.tags || '').split(',').map(t => t.trim());
+  document.querySelectorAll('#modal-trade-chips .chip').forEach(chip => {
+    const chipText = chip.innerText.trim();
+    if (tradeTags.includes(chipText)) {
+      chip.classList.add('selected');
+      if (chipText.includes('Plan')) chip.classList.add('selected-profit');
+    } else {
+      chip.classList.remove('selected', 'selected-profit');
+    }
+  });
+
+  if (modal) modal.classList.add('active');
 }
 
 
@@ -425,6 +536,57 @@ function saveTradeFromModal(event) {
     chartImage: document.getElementById('modal-chart-base64').value,
     notes: document.getElementById('modal-trade-notes').value.trim()
   };
+
+  if (state.editingSavedTradeContext) {
+    const { sessionId, tradeIndex } = state.editingSavedTradeContext;
+    const session = (state.sessions || []).find(s => s.id === sessionId);
+    if (session && session.trades && session.trades[tradeIndex]) {
+      tradeData.id = session.trades[tradeIndex].id || tradeData.id;
+      session.trades[tradeIndex] = tradeData;
+
+      // Recalcular netPnl de la sesión
+      session.netPnl = (session.trades || []).reduce((acc, t) => {
+        if (t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS') return acc;
+        return acc + (parseFloat(t.pnl) || 0);
+      }, 0);
+
+      // Guardar en localStorage
+      if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+
+      // Sincronizar en la nube (Supabase)
+      if (typeof saveSessionToCloud === 'function') {
+        saveSessionToCloud(session);
+      }
+
+      // Re-renderizar dashboards e historiales
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderHistory === 'function') renderHistory();
+      if (typeof renderCalendar === 'function') renderCalendar();
+
+      // Si el modal de detalles del día en calendario está abierto, actualizarlo
+      const calModal = document.getElementById('calendar-day-modal');
+      if (calModal && calModal.classList.contains('active') && typeof openCalendarDayDetails === 'function') {
+        openCalendarDayDetails(session.date);
+      }
+
+      // Si el modal de reporte personal/notebooklm está abierto para esta sesión, re-renderizarlo
+      const reportModal = document.getElementById('daily-personal-report-modal');
+      if (reportModal && reportModal.classList.contains('active') && typeof openDailyPersonalReport === 'function') {
+        openDailyPersonalReport(session.id);
+      }
+
+      // Si el modal de edición de sesión está abierto, actualizar su resumen
+      const editSessionModal = document.getElementById('edit-session-modal');
+      if (editSessionModal && editSessionModal.classList.contains('active') && typeof openEditSessionModal === 'function') {
+        openEditSessionModal(session.id);
+      }
+
+      showToast('¡Operación actualizada y sincronizada con éxito!', 'success');
+      state.editingSavedTradeContext = null;
+      closeTradeModal();
+      return;
+    }
+  }
 
   if (state.editingTradeIndex >= 0) {
     state.currentDraftTrades[state.editingTradeIndex] = tradeData;

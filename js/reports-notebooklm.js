@@ -399,6 +399,7 @@ function buildDailyPersonalHTML(s) {
               <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">R:R</th>
               <th class="col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Gráfico</th>
               <th class="col-left" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Etiquetas / Notas</th>
+              <th class="no-print col-center" style="color: #0f172a !important; background: #f8fafc !important; border-bottom: 2px solid #cbd5e1 !important;">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -454,6 +455,11 @@ function buildDailyPersonalHTML(s) {
                     ${t.chartImage || t.chartUrl ? `<span style="color: #059669; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
                   </td>
                   <td class="col-left" style="line-height: 1.4; color: #1e293b !important;">${t.tags || '-'} ${t.notes ? `<br><small style="color: #64748b !important;">${t.notes}</small>` : ''}</td>
+                  <td class="no-print col-center" style="white-space: nowrap;">
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSavedTradeModal('${s.id}', ${idx})" title="Editar operación" style="padding: 3px 6px; font-size: 0.72rem;">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                  </td>
                 </tr>
               `;
             }).join('')}

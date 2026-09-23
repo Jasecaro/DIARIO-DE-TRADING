@@ -98,10 +98,11 @@ function renderHistory() {
                   <th>P&L ($)</th>
                   <th>R:R</th>
                   <th>Notas</th>
+                  <th style="text-align: center;">Acción</th>
                 </tr>
               </thead>
               <tbody>
-                ${s.trades.map(t => {
+                ${s.trades.map((t, tIdx) => {
                   const isMissed = t.tradeType === 'MISSED';
                   const isAnalysis = t.tradeType === 'ANALYSIS';
 
@@ -161,6 +162,11 @@ function renderHistory() {
                       <td>${pnlCellHtml}</td>
                       <td>${rrCellHtml}</td>
                       <td>${t.notes || t.tags || '-'}</td>
+                      <td style="text-align: center; white-space: nowrap;">
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSavedTradeModal('${s.id}', ${tIdx})" title="Editar esta operación" style="padding: 2px 7px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 3px;">
+                          <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                      </td>
                     </tr>
                   `;
                 }).join('')}
@@ -268,6 +274,35 @@ function openEditSessionModal(sessionId) {
     const tradesCount = (s.trades || []).length;
     const isWin = (s.netPnl || 0) >= 0;
     const pnlColor = isWin ? 'var(--profit)' : 'var(--loss)';
+
+    let tradesListHtml = '';
+    if (s.trades && s.trades.length > 0) {
+      tradesListHtml = `
+        <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.6rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem;">Operaciones en esta sesión:</div>
+          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            ${s.trades.map((t, idx) => {
+              const isMissed = t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS';
+              const pnlText = isMissed ? (t.tradeType === 'MISSED' ? 'Omitido / Se Escapó' : 'Análisis') : `${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}`;
+              const dirBadge = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.8rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong>#${idx + 1} ${t.asset}</strong>
+                    <span class="badge ${dirBadge}">${t.direction}</span>
+                    <span style="color: var(--text-muted); font-size: 0.78rem;">${pnlText}</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSavedTradeModal('${s.id}', ${idx})" style="padding: 2px 8px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 3px;">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar Trade
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
     summaryEl.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <div>
@@ -275,9 +310,10 @@ function openEditSessionModal(sessionId) {
           ${s.noTrades ? '<span class="badge badge-no-trades" style="margin-left: 6px; font-size: 0.7rem;">Día de Paciencia</span>' : ''}
         </div>
         <div style="font-weight: 800; color: ${pnlColor}; font-size: 1.05rem; font-family: var(--font-mono);">
-          ${isWin ? '+' : ''}$${(s.netPnl || 0).toFixed(2)} USD
+          ${isWin ? '+' : ''}${(s.netPnl || 0).toFixed(2)} USD
         </div>
       </div>
+      ${tradesListHtml}
     `;
   }
 
