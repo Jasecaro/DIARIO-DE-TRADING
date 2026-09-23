@@ -957,8 +957,11 @@
               <button type="button" class="btn btn-secondary btn-no-trades" id="btn-toggle-no-trades" onclick="toggleNoTradesMode(true)">
                 <i class="fa-solid fa-shield-halved"></i> No Hubo Entradas (Paciencia)
               </button>
-              <button type="button" class="btn btn-success" onclick="openTradeModal()">
-                <i class="fa-solid fa-plus"></i> Agregar Trade
+              <button type="button" class="btn btn-warning-soft" onclick="openTradeModal(-1, 'MISSED')" title="Registrar un trade que se te escapó o que dejaste pasar">
+                <i class="fa-solid fa-clock-rotate-left"></i> + Trade Omitido / Análisis
+              </button>
+              <button type="button" class="btn btn-success" onclick="openTradeModal(-1, 'EXECUTED')">
+                <i class="fa-solid fa-plus"></i> + Agregar Trade
               </button>
             </div>
           </div>
@@ -1530,6 +1533,71 @@ Por ejemplo:
       
       <form id="trade-form" onsubmit="saveTradeFromModal(event)">
         <input type="hidden" id="modal-trade-id">
+        <input type="hidden" id="modal-trade-type" value="EXECUTED">
+
+        <!-- SELECTOR DE MODO DE TRADE: EJECUTADO vs OMITIDO vs ANÁLISIS -->
+        <div class="trade-type-switcher" id="trade-type-switcher">
+          <button type="button" class="trade-type-btn active type-executed" id="btn-type-executed" onclick="setTradeTypeMode('EXECUTED')">
+            <i class="fa-solid fa-circle-play"></i> <span>Trade Ejecutado</span>
+          </button>
+          <button type="button" class="trade-type-btn type-missed" id="btn-type-missed" onclick="setTradeTypeMode('MISSED')">
+            <i class="fa-solid fa-clock-rotate-left"></i> <span>Trade Omitido (Missed)</span>
+          </button>
+          <button type="button" class="trade-type-btn type-analysis" id="btn-type-analysis" onclick="setTradeTypeMode('ANALYSIS')">
+            <i class="fa-solid fa-microscope"></i> <span>Solo Análisis / Estudio</span>
+          </button>
+        </div>
+
+        <!-- SECCIÓN ESPECÍFICA: MOTIVO Y ANÁLISIS DE TRADE OMITIDO / ESTUDIO -->
+        <div id="modal-missed-section" style="display: none; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius-md); padding: 1.1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #f59e0b; font-weight: 700; font-size: 0.92rem;">
+              <i class="fa-solid fa-brain"></i> <span id="missed-section-title">Motivo y Análisis Psicológico de la Omisión</span>
+            </div>
+            <span class="badge badge-sm" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem;">
+              <i class="fa-solid fa-shield-halved"></i> Sin impacto en balance real
+            </span>
+          </div>
+
+          <!-- Chips de Motivos Predeterminados -->
+          <div class="form-group full-width" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.82rem; font-weight: 600;"><i class="fa-solid fa-list-check"></i> Motivo principal por el que no entraste:</label>
+            <div class="chip-group" id="modal-missed-reasons-chips" style="margin-top: 0.35rem;">
+              <div class="chip selected" onclick="selectMissedReason(this, 'El movimiento fue muy rápido / Sin retroceso')">⚡ Muy rápido / Sin retroceso</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Duda / Falta de confianza en la confirmación')">🧠 Duda / Falta de confianza</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Miedo a perder (Fear of Loss) / Racha previa')">📉 Miedo a perder / Racha previa</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Llegué tarde a las pantallas / Fuera de horario')">⏰ Llegué tarde / Fuera de horario</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Spread alto / Deslizamiento (Slippage)')">⛔ Spread alto / Deslizamiento</div>
+              <div class="chip" onclick="selectMissedReason(this, 'No cumplía 100% las reglas del plan (Disciplina)')">🚫 No cumplía 100% reglas</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Idea en observación / Seguimiento técnico')">🔍 Solo observación / Análisis</div>
+              <div class="chip" onclick="selectMissedReason(this, 'Otro Motivo Personalizado')">✍️ Otro motivo...</div>
+            </div>
+            <input type="hidden" id="modal-missed-reason" value="El movimiento fue muy rápido / Sin retroceso">
+          </div>
+
+          <!-- Espacio para escribir motivo personalizado si no está o desea especificar -->
+          <div class="form-group full-width" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-pen-to-square"></i> Escribe o detalla tu motivo si no está en la lista (o agrega contexto):</label>
+            <input type="text" id="modal-missed-custom-reason" placeholder="Ej: Dudé en la vela de 5m por noticia previa o se fue en una sola vela sin mí..." oninput="syncCustomMissedReason(this.value)">
+          </div>
+
+          <!-- Desenlace Teórico y R:R Potencial -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+            <div class="form-group">
+              <label style="font-size: 0.82rem;"><i class="fa-solid fa-crosshairs"></i> Resultado Teórico del Mercado</label>
+              <select id="modal-theoretical-outcome">
+                <option value="TP">✅ Habría sido Take Profit (TP)</option>
+                <option value="SL">❌ Habría sido Stop Loss (SL)</option>
+                <option value="BE">⚪ Habría salido en Breakeven (BE)</option>
+                <option value="OPEN">⏳ Sin Definir / En Desarrollo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.82rem;"><i class="fa-solid fa-scale-balanced"></i> R:R Potencial Teórico</label>
+              <input type="number" step="0.1" id="modal-theoretical-rr" placeholder="Ej: 2.5 o 3.0" value="2.5">
+            </div>
+          </div>
+        </div>
 
         <div class="form-grid">
           <div class="form-group full-width">
@@ -1555,7 +1623,7 @@ Por ejemplo:
           <!-- Hora y Precios Técnicos -->
           <div class="form-group">
             <label style="display: flex; justify-content: space-between; align-items: center;">
-              <span><i class="fa-regular fa-clock"></i> Hora Entrada</span>
+              <span><i class="fa-regular fa-clock"></i> Hora Entrada / Detección</span>
               <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 0.72rem;" onclick="setTradeModalCurrentTime()" title="Poner hora actual">🕒 Ahora</button>
             </label>
             <input type="time" id="modal-trade-time" oninput="calculateTradeDurationInModal()">
@@ -1563,7 +1631,7 @@ Por ejemplo:
 
           <div class="form-group">
             <label style="display: flex; justify-content: space-between; align-items: center;">
-              <span><i class="fa-solid fa-clock-rotate-left"></i> Hora Salida</span>
+              <span><i class="fa-solid fa-clock-rotate-left"></i> Hora Salida / Desenlace</span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span id="modal-duration-badge" class="badge badge-sm" style="display: none; font-size: 0.72rem; padding: 2px 6px;">
                   <i class="fa-solid fa-hourglass-half"></i> <span id="modal-duration-text">0m</span>
@@ -1575,29 +1643,29 @@ Por ejemplo:
           </div>
 
           <div class="form-group">
-            <label><i class="fa-solid fa-arrow-right-to-bracket"></i> Precio de Entrada</label>
+            <label><i class="fa-solid fa-arrow-right-to-bracket"></i> Precio de Entrada (o Nivel Clave)</label>
             <input type="number" step="any" id="modal-entry-price" placeholder="Ej: 20450.25" oninput="calculatePointsDifference()">
           </div>
 
           <div class="form-group">
             <label style="display: flex; justify-content: space-between; align-items: center;">
-              <span><i class="fa-solid fa-arrow-right-from-bracket"></i> Precio de Salida</span>
+              <span><i class="fa-solid fa-arrow-right-from-bracket"></i> Precio de Salida / TP Teórico</span>
               <span id="modal-points-badge" class="badge badge-sm" style="display: none; font-size: 0.72rem; padding: 2px 6px;">0 pts</span>
             </label>
             <input type="number" step="any" id="modal-exit-price" placeholder="Ej: 20485.50" oninput="calculatePointsDifference()">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" id="form-group-modal-lots">
             <label><i class="fa-solid fa-cubes"></i> Tamaño / Lotes / Contratos</label>
             <input type="number" step="0.01" id="modal-lots" placeholder="Ej: 1.5" required value="1.0">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" id="form-group-modal-pnl">
             <label><i class="fa-solid fa-sack-dollar"></i> P&L Resultado ($)</label>
             <input type="number" step="0.01" id="modal-pnl" placeholder="Ej: 450.00 o -150.00" required value="350.00">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" id="form-group-modal-rr">
             <label><i class="fa-solid fa-scale-balanced"></i> Ratio Riesgo:Beneficio (R:R)</label>
             <input type="number" step="0.1" id="modal-rr" placeholder="Ej: 2.5" required value="2.5">
           </div>

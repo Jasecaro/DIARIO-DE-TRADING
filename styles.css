@@ -4472,6 +4472,129 @@ input[type="range"] {
 }
 
 /* ==========================================================================
+   SELECTOR DE TIPO DE TRADE (EJECUTADO / OMITIDO / ANÁLISIS)
+   ========================================================================== */
+.trade-type-switcher {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+}
+
+.trade-type-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.trade-type-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trade-type-btn.active.type-executed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.trade-type-btn.active.type-missed {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.trade-type-btn.active.type-analysis {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+/* Badges para Trades Omitidos y Análisis */
+.badge-missed {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-theme="dark"] .badge-missed {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.badge-analysis {
+  background: rgba(56, 189, 248, 0.15);
+  color: #0284c7;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-theme="dark"] .badge-analysis {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.btn-warning-soft {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.btn-warning-soft:hover {
+  background: rgba(245, 158, 11, 0.22);
+  color: #b45309;
+}
+
+[data-theme="dark"] .btn-warning-soft {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+[data-theme="dark"] .btn-warning-soft:hover {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fde68a;
+}
+
+
+/* ==========================================================================
    DASHBOARD: CONTROL MULTI-CUENTA DE FONDEO
    ========================================================================== */
 .dash-accounts-header {

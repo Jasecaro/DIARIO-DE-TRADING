@@ -590,8 +590,72 @@ function calculatePointsDifference() {
   }
 }
 
+// =============================================================================
+// GESTIÓN DE MODOS DE TRADE: EJECUTADO vs OMITIDO vs ANÁLISIS
+// =============================================================================
+function setTradeTypeMode(type) {
+  const tradeTypeInput = document.getElementById('modal-trade-type');
+  if (tradeTypeInput) tradeTypeInput.value = type;
+
+  const btnExec = document.getElementById('btn-type-executed');
+  const btnMiss = document.getElementById('btn-type-missed');
+  const btnAna = document.getElementById('btn-type-analysis');
+  const missedSection = document.getElementById('modal-missed-section');
+  const pnlGroup = document.getElementById('form-group-modal-pnl');
+  const pnlInput = document.getElementById('modal-pnl');
+  const modalTitle = document.getElementById('trade-modal-title');
+  const missedSectionTitle = document.getElementById('missed-section-title');
+
+  if (btnExec) btnExec.classList.toggle('active', type === 'EXECUTED');
+  if (btnMiss) btnMiss.classList.toggle('active', type === 'MISSED');
+  if (btnAna) btnAna.classList.toggle('active', type === 'ANALYSIS');
+
+  if (type === 'EXECUTED') {
+    if (missedSection) missedSection.style.display = 'none';
+    if (pnlGroup) pnlGroup.style.display = 'block';
+    if (pnlInput) pnlInput.required = true;
+    if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-chart-line"></i> Registrar Trade en Vivo';
+  } else if (type === 'MISSED') {
+    if (missedSection) missedSection.style.display = 'block';
+    if (pnlGroup) pnlGroup.style.display = 'none';
+    if (pnlInput) { pnlInput.required = false; pnlInput.value = '0'; }
+    if (missedSectionTitle) missedSectionTitle.innerText = 'Motivo y Análisis Psicológico de la Omisión';
+    if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b;"></i> Registrar Trade Omitido (Missed Trade)';
+  } else if (type === 'ANALYSIS') {
+    if (missedSection) missedSection.style.display = 'block';
+    if (pnlGroup) pnlGroup.style.display = 'none';
+    if (pnlInput) { pnlInput.required = false; pnlInput.value = '0'; }
+    if (missedSectionTitle) missedSectionTitle.innerText = 'Objetivo y Estudio del Análisis Técnico';
+    if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-microscope" style="color: #38bdf8;"></i> Registrar Análisis / Estudio Técnico';
+  }
+}
+
+function selectMissedReason(element, reason) {
+  document.querySelectorAll('#modal-missed-reasons-chips .chip').forEach(c => c.classList.remove('selected'));
+  element.classList.add('selected');
+  const input = document.getElementById('modal-missed-reason');
+  if (input) input.value = reason;
+  
+  const customInput = document.getElementById('modal-missed-custom-reason');
+  if (reason.includes('Otro') && customInput) {
+    customInput.focus();
+  }
+}
+
+function syncCustomMissedReason(val) {
+  const hiddenReason = document.getElementById('modal-missed-reason');
+  if (val && val.trim()) {
+    if (hiddenReason) hiddenReason.value = val.trim();
+  } else {
+    const selectedChip = document.querySelector('#modal-missed-reasons-chips .chip.selected');
+    if (selectedChip && hiddenReason) {
+      hiddenReason.value = selectedChip.innerText.replace(/^[^\s]+\s/, '').trim();
+    }
+  }
+}
+
 // Live Trade Modal Logic
-function openTradeModal(editIndex = -1) {
+function openTradeModal(editIndex = -1, defaultType = 'EXECUTED') {
   state.editingTradeIndex = editIndex;
   const modal = document.getElementById('trade-modal');
   const modalTitle = document.getElementById('trade-modal-title');
@@ -616,8 +680,18 @@ function openTradeModal(editIndex = -1) {
   removeImagePreview();
 
   if (editIndex >= 0) {
-    modalTitle.innerHTML = '<i class="fa-solid fa-pen"></i> Editar Trade';
     const trade = state.currentDraftTrades[editIndex];
+    const tradeType = trade.tradeType || 'EXECUTED';
+    setTradeTypeMode(tradeType);
+
+    if (tradeType === 'EXECUTED') {
+      modalTitle.innerHTML = '<i class="fa-solid fa-pen"></i> Editar Trade';
+    } else if (tradeType === 'MISSED') {
+      modalTitle.innerHTML = '<i class="fa-solid fa-pen" style="color: #f59e0b;"></i> Editar Trade Omitido';
+    } else {
+      modalTitle.innerHTML = '<i class="fa-solid fa-pen" style="color: #38bdf8;"></i> Editar Análisis';
+    }
+
     document.getElementById('modal-asset').value = trade.asset;
     document.getElementById('modal-direction').value = trade.direction;
     document.getElementById('modal-trade-time').value = trade.time || '';
@@ -631,6 +705,31 @@ function openTradeModal(editIndex = -1) {
     document.getElementById('modal-chart-url').value = trade.chartUrl || '';
     document.getElementById('modal-trade-notes').value = trade.notes || '';
     document.getElementById('modal-trade-tags').value = trade.tags || '';
+
+    // Restore missed / analysis fields
+    const customReasonInput = document.getElementById('modal-missed-custom-reason');
+    if (customReasonInput) customReasonInput.value = trade.customMissedReason || '';
+    const outcomeSelect = document.getElementById('modal-theoretical-outcome');
+    if (outcomeSelect) outcomeSelect.value = trade.theoreticalOutcome || 'TP';
+    const rrTheoretical = document.getElementById('modal-theoretical-rr');
+    if (rrTheoretical) rrTheoretical.value = trade.theoreticalRr || trade.rr || '2.5';
+    const reasonHidden = document.getElementById('modal-missed-reason');
+    if (reasonHidden) reasonHidden.value = trade.missedReason || 'El movimiento fue muy rápido / Sin retroceso';
+
+    // Highlight matching reason chip
+    const chips = document.querySelectorAll('#modal-missed-reasons-chips .chip');
+    let matched = false;
+    chips.forEach(chip => {
+      chip.classList.remove('selected');
+      if (trade.missedReason && chip.innerText.toLowerCase().includes(trade.missedReason.toLowerCase().slice(0, 15))) {
+        chip.classList.add('selected');
+        matched = true;
+      }
+    });
+    if (!matched && trade.customMissedReason) {
+      const otroChip = Array.from(chips).find(c => c.innerText.includes('Otro'));
+      if (otroChip) otroChip.classList.add('selected');
+    }
 
     calculatePointsDifference();
     calculateTradeDurationInModal();
@@ -655,8 +754,8 @@ function openTradeModal(editIndex = -1) {
       }
     });
   } else {
-    modalTitle.innerHTML = '<i class="fa-solid fa-chart-line"></i> Registrar Trade en Vivo';
     form.reset();
+    setTradeTypeMode(defaultType || 'EXECUTED');
     setTradeModalCurrentTime();
     if (accSelect) {
       accSelect.value = 'REPLICATED';
@@ -668,9 +767,22 @@ function openTradeModal(editIndex = -1) {
     calculateTradeDurationInModal();
 
     document.getElementById('modal-lots').value = '1.0';
-    document.getElementById('modal-pnl').value = '350.00';
+    document.getElementById('modal-pnl').value = (defaultType === 'EXECUTED') ? '350.00' : '0.00';
     document.getElementById('modal-rr').value = '2.5';
-    document.getElementById('modal-trade-tags').value = 'Plan Ejecutado 100%';
+    document.getElementById('modal-trade-tags').value = (defaultType === 'EXECUTED') ? 'Plan Ejecutado 100%' : 'Trade Omitido';
+
+    // Reset missed trade section
+    const customReasonInput = document.getElementById('modal-missed-custom-reason');
+    if (customReasonInput) customReasonInput.value = '';
+    const outcomeSelect = document.getElementById('modal-theoretical-outcome');
+    if (outcomeSelect) outcomeSelect.value = 'TP';
+    const rrTheoretical = document.getElementById('modal-theoretical-rr');
+    if (rrTheoretical) rrTheoretical.value = '2.5';
+    const reasonHidden = document.getElementById('modal-missed-reason');
+    if (reasonHidden) reasonHidden.value = 'El movimiento fue muy rápido / Sin retroceso';
+    document.querySelectorAll('#modal-missed-reasons-chips .chip').forEach((c, idx) => {
+      c.classList.toggle('selected', idx === 0);
+    });
 
     document.querySelectorAll('#modal-trade-chips .chip').forEach(chip => {
       if (chip.innerText.includes('Plan')) {
@@ -918,6 +1030,14 @@ function closeLightbox() {
 function saveTradeFromModal(event) {
   event.preventDefault();
   
+  const tradeType = document.getElementById('modal-trade-type')?.value || 'EXECUTED';
+  const customReason = document.getElementById('modal-missed-custom-reason')?.value.trim() || '';
+  const selectedChipReason = document.getElementById('modal-missed-reason')?.value.trim() || 'El movimiento fue muy rápido / Sin retroceso';
+  const finalMissedReason = customReason || selectedChipReason;
+  const theoreticalOutcome = document.getElementById('modal-theoretical-outcome')?.value || 'TP';
+  const theoreticalRr = parseFloat(document.getElementById('modal-theoretical-rr')?.value) || 0;
+  const isMissedOrAnalysis = (tradeType === 'MISSED' || tradeType === 'ANALYSIS');
+
   const entryVal = parseFloat(document.getElementById('modal-entry-price')?.value);
   const exitVal = parseFloat(document.getElementById('modal-exit-price')?.value);
   const dir = document.getElementById('modal-direction').value;
@@ -930,9 +1050,15 @@ function saveTradeFromModal(event) {
   const exitTimeVal = document.getElementById('modal-trade-exit-time')?.value || '';
   const durFormatted = formatTradeDuration(timeVal, exitTimeVal);
   const durMins = getTradeDurationMinutes(timeVal, exitTimeVal);
+  const pnlVal = isMissedOrAnalysis ? 0 : (parseFloat(document.getElementById('modal-pnl')?.value) || 0);
 
   const tradeData = {
     id: (state.editingTradeIndex >= 0 && state.currentDraftTrades[state.editingTradeIndex]) ? state.currentDraftTrades[state.editingTradeIndex].id : Date.now(),
+    tradeType: tradeType,
+    missedReason: isMissedOrAnalysis ? finalMissedReason : null,
+    customMissedReason: customReason,
+    theoreticalOutcome: isMissedOrAnalysis ? theoreticalOutcome : null,
+    theoreticalRr: isMissedOrAnalysis ? theoreticalRr : null,
     account: document.getElementById('modal-trade-account')?.value || 'REPLICATED',
     time: timeVal,
     exitTime: exitTimeVal,
@@ -944,8 +1070,8 @@ function saveTradeFromModal(event) {
     asset: document.getElementById('modal-asset').value.trim(),
     direction: dir,
     lots: parseFloat(document.getElementById('modal-lots').value) || 1,
-    pnl: parseFloat(document.getElementById('modal-pnl').value) || 0,
-    rr: parseFloat(document.getElementById('modal-rr').value) || 0,
+    pnl: pnlVal,
+    rr: isMissedOrAnalysis ? theoreticalRr : (parseFloat(document.getElementById('modal-rr').value) || 0),
     setup: document.getElementById('modal-setup').value,
     tags: document.getElementById('modal-trade-tags').value,
     chartUrl: document.getElementById('modal-chart-url').value.trim(),
@@ -958,7 +1084,9 @@ function saveTradeFromModal(event) {
     showToast('Trade actualizado correctamente', 'success');
   } else {
     state.currentDraftTrades.push(tradeData);
-    showToast('Trade agregado a la sesión', 'success');
+    const toastMsg = tradeType === 'MISSED' ? 'Trade omitido registrado para tu estudio y psicología' : 
+                     (tradeType === 'ANALYSIS' ? 'Análisis técnico registrado en la sesión' : 'Trade agregado a la sesión');
+    showToast(toastMsg, 'success');
   }
 
   closeTradeModal();
@@ -982,11 +1110,14 @@ function renderDraftTradesTable() {
           <i class="fa-solid fa-chart-line empty-icon" style="font-size: 2.5rem; color: var(--accent-primary); margin-bottom: 0.75rem;"></i>
           <h4 style="color: var(--text-main); margin-bottom: 0.25rem;">Sin operaciones registradas en esta sesión</h4>
           <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 480px; margin: 0 auto 1.25rem auto;">
-            ¿Abriste posiciones hoy o el mercado no cumplió las reglas de tu estrategia? Elige una opción:
+            ¿Abriste posiciones hoy, se te escapó una entrada o el mercado no cumplió tus reglas? Elige una opción:
           </p>
           <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary" onclick="openTradeModal()">
+            <button type="button" class="btn btn-primary" onclick="openTradeModal(-1, 'EXECUTED')">
               <i class="fa-solid fa-plus"></i> + Agregar Trade en Vivo
+            </button>
+            <button type="button" class="btn btn-warning-soft" onclick="openTradeModal(-1, 'MISSED')">
+              <i class="fa-solid fa-clock-rotate-left"></i> + Trade Omitido / Análisis
             </button>
             <button type="button" class="btn btn-secondary btn-no-trades" onclick="toggleNoTradesMode(true)">
               <i class="fa-solid fa-shield-halved"></i> No Hubo Entradas Hoy (Subir Gráfico)
@@ -1001,9 +1132,22 @@ function renderDraftTradesTable() {
   }
 
   let totalPnl = 0;
+  let executedCount = 0;
+  let missedCount = 0;
+
   tbody.innerHTML = state.currentDraftTrades.map((t, idx) => {
-    totalPnl += t.pnl;
-    const isWin = t.pnl >= 0;
+    const isMissed = t.tradeType === 'MISSED';
+    const isAnalysis = t.tradeType === 'ANALYSIS';
+    const isExecuted = !isMissed && !isAnalysis;
+
+    if (isExecuted) {
+      totalPnl += (t.pnl || 0);
+      executedCount++;
+    } else {
+      missedCount++;
+    }
+
+    const isWin = (t.pnl || 0) >= 0;
     const pnlClass = isWin ? 'badge-profit' : 'badge-loss';
     const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
 
@@ -1035,6 +1179,45 @@ function renderDraftTradesTable() {
       </div>
     ` : '';
 
+    // Badge de tipo de trade
+    let typeBadgeHtml = '';
+    if (isMissed) {
+      typeBadgeHtml = `<div style="margin-top: 2px;"><span class="badge badge-missed" style="font-size: 0.65rem;"><i class="fa-solid fa-clock-rotate-left"></i> OMITIDO</span></div>`;
+    } else if (isAnalysis) {
+      typeBadgeHtml = `<div style="margin-top: 2px;"><span class="badge badge-analysis" style="font-size: 0.65rem;"><i class="fa-solid fa-microscope"></i> ANÁLISIS</span></div>`;
+    }
+
+    // Columna P&L
+    let pnlColumnHtml = '';
+    if (isMissed) {
+      const outcomeColor = t.theoreticalOutcome === 'TP' ? 'var(--profit)' : (t.theoreticalOutcome === 'SL' ? 'var(--loss)' : '#f59e0b');
+      const outcomeText = t.theoreticalOutcome === 'TP' ? '✅ Habría sido TP' : (t.theoreticalOutcome === 'SL' ? '❌ Habría sido SL' : (t.theoreticalOutcome === 'BE' ? '⚪ Breakeven' : '⏳ Sin definir'));
+      pnlColumnHtml = `
+        <span class="badge badge-missed" style="font-size: 0.72rem;">$0.00 (Teórico)</span>
+        <div style="font-size: 0.68rem; margin-top: 3px; font-weight: 700; color: ${outcomeColor};">${outcomeText}</div>
+      `;
+    } else if (isAnalysis) {
+      pnlColumnHtml = `
+        <span class="badge badge-analysis" style="font-size: 0.72rem;">$0.00 (Estudio)</span>
+        <div style="font-size: 0.68rem; margin-top: 3px; font-weight: 700; color: #38bdf8;">${t.theoreticalOutcome || 'Proyección'}</div>
+      `;
+    } else {
+      pnlColumnHtml = `<span class="badge ${pnlClass}">$${t.pnl.toFixed(2)}</span>`;
+    }
+
+    // Columna Setup y Motivo
+    let setupColumnHtml = `<strong>${t.setup}</strong>`;
+    if (isMissed) {
+      setupColumnHtml += `<div style="font-size: 0.72rem; color: #f59e0b; margin-top: 3px; font-weight: 600;"><i class="fa-solid fa-brain"></i> ${t.missedReason || 'Omitido'}</div>`;
+    } else if (isAnalysis) {
+      setupColumnHtml += `<div style="font-size: 0.72rem; color: #38bdf8; margin-top: 3px; font-weight: 600;"><i class="fa-solid fa-microscope"></i> ${t.missedReason || 'Análisis técnico'}</div>`;
+    }
+
+    // Columna R:R
+    const rrDisplay = (isMissed || isAnalysis) 
+      ? `<strong>1:${t.theoreticalRr || t.rr || 0}</strong> <small style="color: var(--text-muted); font-size: 0.7rem;">(Teo)</small>` 
+      : `<strong>1:${t.rr}</strong>`;
+
     return `
       <tr>
         <td><strong>#${idx + 1}</strong></td>
@@ -1046,6 +1229,7 @@ function renderDraftTradesTable() {
         </td>
         <td>
           <strong>${t.asset}</strong>
+          ${typeBadgeHtml}
           ${(t.account && t.account !== 'REPLICATED')
             ? `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.65rem; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-wallet"></i> ${t.account}</span></div>`
             : `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.65rem; background: #f1f5f9; color: var(--text-muted);"><i class="fa-solid fa-bolt"></i> Replicado</span></div>`}
@@ -1053,11 +1237,11 @@ function renderDraftTradesTable() {
         <td><span class="badge ${dirClass}">${t.direction}</span></td>
         <td>${priceHtml}</td>
         <td>${t.lots} Lotes</td>
-        <td>${t.setup}</td>
+        <td>${setupColumnHtml}</td>
         <td>${imageHtml}</td>
-        <td><span style="font-size: 0.8rem; color: var(--text-muted);">${t.tags || 'Plan estándar'}</span></td>
-        <td><span class="badge ${pnlClass}">$${t.pnl.toFixed(2)}</span></td>
-        <td><strong>1:${t.rr}</strong></td>
+        <td><span style="font-size: 0.8rem; color: var(--text-muted);">${t.tags || (isMissed ? 'Trade Omitido' : 'Plan estándar')}</span></td>
+        <td>${pnlColumnHtml}</td>
+        <td>${rrDisplay}</td>
         <td>
           <button type="button" class="btn btn-secondary btn-sm" onclick="openTradeModal(${idx})"><i class="fa-solid fa-pen"></i></button>
           <button type="button" class="btn btn-danger btn-sm" onclick="deleteDraftTrade(${idx})"><i class="fa-solid fa-trash"></i></button>
@@ -1069,7 +1253,11 @@ function renderDraftTradesTable() {
   const pnlEl = document.getElementById('current-session-pnl');
   pnlEl.innerText = `$${totalPnl.toFixed(2)}`;
   pnlEl.style.color = totalPnl >= 0 ? 'var(--profit)' : 'var(--loss)';
-  document.getElementById('current-session-count').innerText = state.currentDraftTrades.length;
+  
+  const countLabel = missedCount > 0 
+    ? `${executedCount} Ejecutados (+${missedCount} Omitidos/Estudio)` 
+    : `${executedCount}`;
+  document.getElementById('current-session-count').innerText = countLabel;
 }
 
 // Complete Session Save Handler
@@ -1166,7 +1354,7 @@ function handleSaveSession(event) {
       disciplineScore: parseInt(disciplineInput?.value) || (isNoTrades ? 10 : 9),
       mistakes: isNoTrades ? (mistakesInput?.value || 'Ninguno (Plan Seguido)') : (mistakesInput?.value || ''),
       takeaway: takeawayInput?.value || (isNoTrades ? (sessionNoTradeNotes || 'Día de Paciencia y preservación de capital. Sin operaciones ejecutadas según el plan.') : ''),
-      netPnl: isNoTrades ? 0 : (state.currentDraftTrades ? state.currentDraftTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) : 0)
+      netPnl: isNoTrades ? 0 : (state.currentDraftTrades ? state.currentDraftTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS').reduce((sum, t) => sum + (t.pnl || 0), 0) : 0)
     };
 
     if (!state.sessions) state.sessions = [];
@@ -1854,7 +2042,9 @@ function renderDashboardCalendar(filteredSessions) {
     }
     (s.trades || []).forEach(t => {
       daysMap[dStr].trades.push(t);
-      daysMap[dStr].netPnl += (t.pnl || 0);
+      if (t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS') {
+        daysMap[dStr].netPnl += (t.pnl || 0);
+      }
       if (t.chartImage || t.chartUrl || t.notes) {
         daysMap[dStr].hasNotesOrMedia = true;
       }
@@ -2061,14 +2251,18 @@ function openCalendarDayDetails(dateStr) {
     (s.trades || []).forEach(t => {
       if (!isFiltered || !t.account || t.account === 'REPLICATED' || t.account === targetAccount) {
         allTrades.push({ ...t, sessionAccount: s.account });
-        totalDayPnl += (t.pnl || 0);
+        if (t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS') {
+          totalDayPnl += (t.pnl || 0);
+        }
       }
     });
   });
 
-  const wins = allTrades.filter(t => t.pnl >= 0).length;
-  const losses = allTrades.filter(t => t.pnl < 0).length;
-  const wr = allTrades.length > 0 ? ((wins / allTrades.length) * 100).toFixed(1) : '0.0';
+  const executedTrades = allTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
+  const missedTrades = allTrades.filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
+  const wins = executedTrades.filter(t => (t.pnl || 0) >= 0).length;
+  const losses = executedTrades.filter(t => (t.pnl || 0) < 0).length;
+  const wr = executedTrades.length > 0 ? ((wins / executedTrades.length) * 100).toFixed(1) : '0.0';
 
   let bodyHtml = `
     <div class="cal-modal-summary-grid">
@@ -2080,7 +2274,7 @@ function openCalendarDayDetails(dateStr) {
       </div>
       <div class="cal-modal-stat-card">
         <div class="label">Operaciones</div>
-        <div class="val">${allTrades.length}</div>
+        <div class="val">${executedTrades.length}${missedTrades.length > 0 ? ` <small style="font-size: 0.72rem; color: #f59e0b;">(+${missedTrades.length} omi)</small>` : ''}</div>
       </div>
       <div class="cal-modal-stat-card">
         <div class="label">Win Rate</div>
@@ -2138,12 +2332,18 @@ function openCalendarDayDetails(dateStr) {
     `;
 
     allTrades.forEach((t, idx) => {
-      const isWin = t.pnl >= 0;
+      const isMissed = t.tradeType === 'MISSED';
+      const isAnalysis = t.tradeType === 'ANALYSIS';
+      const isWin = (t.pnl || 0) >= 0;
       const pnlClass = isWin ? 'badge-profit' : 'badge-loss';
       const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
       const accountBadge = (t.account && t.account !== 'REPLICATED')
         ? `<span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.72rem;"><i class="fa-solid fa-wallet"></i> ${t.account}</span>`
         : `<span class="badge" style="background: #f1f5f9; color: var(--text-muted); font-size: 0.72rem;"><i class="fa-solid fa-bolt"></i> Replicado</span>`;
+
+      const typeBadge = isMissed 
+        ? `<span class="badge badge-missed" style="font-size: 0.72rem;"><i class="fa-solid fa-clock-rotate-left"></i> OMITIDO</span>`
+        : (isAnalysis ? `<span class="badge badge-analysis" style="font-size: 0.72rem;"><i class="fa-solid fa-microscope"></i> ANÁLISIS</span>` : '');
 
       let priceHtml = '';
       if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
@@ -2165,25 +2365,64 @@ function openCalendarDayDetails(dateStr) {
         </div>
       ` : '');
 
+      let rightSideHtml = '';
+      if (isMissed) {
+        const outColor = t.theoreticalOutcome === 'TP' ? 'var(--profit)' : (t.theoreticalOutcome === 'SL' ? 'var(--loss)' : '#f59e0b');
+        const outText = t.theoreticalOutcome === 'TP' ? '✅ Habría sido TP' : (t.theoreticalOutcome === 'SL' ? '❌ Habría sido SL' : (t.theoreticalOutcome === 'BE' ? '⚪ Breakeven' : '⏳ Teórico'));
+        rightSideHtml = `
+          <div style="text-align: right;">
+            <span class="badge badge-missed" style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: ${outColor};">
+              ${outText} (1:${t.theoreticalRr || t.rr || '0'}R)
+            </span>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">$0.00 en balance</div>
+          </div>
+        `;
+      } else if (isAnalysis) {
+        rightSideHtml = `
+          <div style="text-align: right;">
+            <span class="badge badge-analysis" style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;">
+              Proyección (1:${t.theoreticalRr || t.rr || '0'}R)
+            </span>
+          </div>
+        `;
+      } else {
+        rightSideHtml = `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="badge ${pnlClass}" style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 800;">
+              ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}
+            </span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-subtle);">1:${t.rr || '0'}</span>
+          </div>
+        `;
+      }
+
+      const reasonBanner = isMissed ? `
+        <div style="font-size: 0.8rem; color: #f59e0b; margin: 0.4rem 0; background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; padding: 0.35rem 0.65rem; border-radius: 4px;">
+          <strong><i class="fa-solid fa-brain"></i> Motivo de omisión:</strong> ${t.missedReason || 'No especificado'}
+        </div>
+      ` : (isAnalysis ? `
+        <div style="font-size: 0.8rem; color: #38bdf8; margin: 0.4rem 0; background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8; padding: 0.35rem 0.65rem; border-radius: 4px;">
+          <strong><i class="fa-solid fa-microscope"></i> Análisis técnico:</strong> ${t.missedReason || 'Estudio'}
+        </div>
+      ` : '');
+
       bodyHtml += `
         <div class="cal-trade-item-card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span style="font-weight: 800; font-size: 0.95rem;">#${idx + 1} ${t.asset}</span>
               <span class="badge ${dirClass}">${t.direction}</span>
+              ${typeBadge}
               ${accountBadge}
               <span style="font-size: 0.8rem; color: var(--text-subtle); display: inline-flex; align-items: center; gap: 4px;">
                 <i class="fa-regular fa-clock"></i> ${t.exitTime ? `${t.time || '--:--'} ➔ ${t.exitTime}` : (t.time || '--:--')}
                 ${(t.duration || formatTradeDuration(t.time, t.exitTime)) ? ` &bull; <span style="color: var(--accent-primary); font-weight: 700;"><i class="fa-solid fa-hourglass-half"></i> ${t.duration || formatTradeDuration(t.time, t.exitTime)}</span>` : ''}
               </span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span class="badge ${pnlClass}" style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 800;">
-                ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}
-              </span>
-              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-subtle);">1:${t.rr || '0'}</span>
-            </div>
+            ${rightSideHtml}
           </div>
+
+          ${reasonBanner}
 
           <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.4rem;">
             <div><strong>Lotes:</strong> ${t.lots}</div>
@@ -2283,7 +2522,7 @@ function renderDashboard() {
       return t.account === targetAccount;
     });
 
-    const net = s.noTrades ? 0 : matchingTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+    const net = s.noTrades ? 0 : matchingTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS').reduce((acc, t) => acc + (t.pnl || 0), 0);
     return {
       ...s,
       trades: matchingTrades,
@@ -2318,6 +2557,7 @@ function renderDashboard() {
     }
 
     (s.trades || []).forEach(t => {
+      if (t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS') return;
       totalTrades++;
       totalPnl += (t.pnl || 0);
       runningCapital += (t.pnl || 0);
@@ -2678,6 +2918,9 @@ function renderHistory() {
               </thead>
               <tbody>
                 ${s.trades.map(t => {
+                  const isMissed = t.tradeType === 'MISSED';
+                  const isAnalysis = t.tradeType === 'ANALYSIS';
+
                   const imgBtn = t.chartImage ? `
                     <img src="${t.chartImage}" class="chart-thumbnail" onclick="openLightbox('${t.chartImage}')" title="Ver pantallazo full size">
                   ` : (t.chartUrl ? `
@@ -2696,19 +2939,43 @@ function renderHistory() {
                   const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
                   const durHtml = durVal ? `<div style="margin-top: 2px;"><span class="badge" style="font-size: 0.68rem; padding: 1px 5px; background: rgba(56, 189, 248, 0.12); color: var(--accent-primary);"><i class="fa-solid fa-hourglass-half"></i> ${durVal}</span></div>` : '';
 
+                  let typeBadgeHtml = '';
+                  let pnlCellHtml = '';
+                  let rrCellHtml = `1:${t.rr}`;
+                  let setupCellHtml = t.setup;
+
+                  if (isMissed) {
+                    typeBadgeHtml = `<div style="margin-top: 2px;"><span class="badge badge-missed" style="font-size: 0.65rem;"><i class="fa-solid fa-clock-rotate-left"></i> OMITIDO</span></div>`;
+                    setupCellHtml = `<div>${t.setup}</div><div style="font-size: 0.7rem; color: #f59e0b; margin-top: 2px;"><i class="fa-solid fa-brain"></i> ${t.missedReason || 'Omitido'}</div>`;
+                    const outColor = t.theoreticalOutcome === 'TP' ? 'var(--profit)' : (t.theoreticalOutcome === 'SL' ? 'var(--loss)' : '#f59e0b');
+                    const outText = t.theoreticalOutcome === 'TP' ? '✅ TP Teo' : (t.theoreticalOutcome === 'SL' ? '❌ SL Teo' : (t.theoreticalOutcome === 'BE' ? 'BE' : 'Teórico'));
+                    pnlCellHtml = `<span class="badge badge-missed" style="font-size: 0.72rem; color: ${outColor};">$0.00 (${outText})</span>`;
+                    rrCellHtml = `1:${t.theoreticalRr || t.rr || 0} <small>(Teo)</small>`;
+                  } else if (isAnalysis) {
+                    typeBadgeHtml = `<div style="margin-top: 2px;"><span class="badge badge-analysis" style="font-size: 0.65rem;"><i class="fa-solid fa-microscope"></i> ANÁLISIS</span></div>`;
+                    setupCellHtml = `<div>${t.setup}</div><div style="font-size: 0.7rem; color: #38bdf8; margin-top: 2px;"><i class="fa-solid fa-microscope"></i> ${t.missedReason || 'Estudio'}</div>`;
+                    pnlCellHtml = `<span class="badge badge-analysis" style="font-size: 0.72rem;">$0.00 (${t.theoreticalOutcome || 'Proy'})</span>`;
+                    rrCellHtml = `1:${t.theoreticalRr || t.rr || 0} <small>(Teo)</small>`;
+                  } else {
+                    pnlCellHtml = `<span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span>`;
+                  }
+
                   return `
                     <tr>
                       <td>
                         <span style="color: var(--text-muted); font-weight: 600; white-space: nowrap;"><i class="fa-regular fa-clock"></i> ${timeDisplay}</span>
                         ${durHtml}
                       </td>
-                      <td><strong>${t.asset}</strong></td>
+                      <td>
+                        <strong>${t.asset}</strong>
+                        ${typeBadgeHtml}
+                      </td>
                       <td><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
                       <td style="font-size: 0.78rem;">${priceStr}</td>
-                      <td>${t.setup}</td>
+                      <td>${setupCellHtml}</td>
                       <td>${imgBtn}</td>
-                      <td><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
-                      <td>1:${t.rr}</td>
+                      <td>${pnlCellHtml}</td>
+                      <td>${rrCellHtml}</td>
                       <td>${t.notes || t.tags || '-'}</td>
                     </tr>
                   `;
@@ -3163,6 +3430,9 @@ function buildDailyPersonalHTML(s) {
           </thead>
           <tbody>
             ${s.trades.map((t, idx) => {
+              const isMissed = t.tradeType === 'MISSED';
+              const isAnalysis = t.tradeType === 'ANALYSIS';
+
               let priceStr = '-';
               if (t.entryPrice !== null && t.entryPrice !== undefined && t.exitPrice !== null && t.exitPrice !== undefined) {
                 const pts = t.points !== null && t.points !== undefined ? `<br><small class="badge ${t.points >= 0 ? 'badge-profit' : 'badge-loss'}" style="font-size: 0.68rem; padding: 1px 4px;">${t.points >= 0 ? '+' : ''}${t.points.toFixed(2)} pts</small>` : '';
@@ -3175,17 +3445,38 @@ function buildDailyPersonalHTML(s) {
               const durVal = t.duration || formatTradeDuration(t.time, t.exitTime);
               const durStr = durVal ? `<br><small style="color: #0284c7; font-weight: 700;">(${durVal})</small>` : '';
 
+              let typeBadgeHtml = '';
+              let pnlCellHtml = '';
+              let rrCellHtml = `1:${t.rr}`;
+              let setupCellHtml = t.setup;
+
+              if (isMissed) {
+                typeBadgeHtml = `<br><span class="badge badge-missed" style="font-size: 0.65rem;"><i class="fa-solid fa-clock-rotate-left"></i> OMITIDO</span>`;
+                setupCellHtml = `<strong>${t.setup}</strong><br><small style="color: #d97706; font-weight: 600;">[Motivo: ${t.missedReason || 'Omitido'}]</small>`;
+                const outColor = t.theoreticalOutcome === 'TP' ? '#059669' : (t.theoreticalOutcome === 'SL' ? '#e11d48' : '#d97706');
+                const outText = t.theoreticalOutcome === 'TP' ? 'TP Teórico' : (t.theoreticalOutcome === 'SL' ? 'SL Teórico' : (t.theoreticalOutcome === 'BE' ? 'BE Teórico' : 'Teórico'));
+                pnlCellHtml = `<span class="badge badge-missed" style="font-size: 0.72rem; color: ${outColor};">$0.00 (${outText})</span>`;
+                rrCellHtml = `1:${t.theoreticalRr || t.rr || 0} <small>(Teo)</small>`;
+              } else if (isAnalysis) {
+                typeBadgeHtml = `<br><span class="badge badge-analysis" style="font-size: 0.65rem;"><i class="fa-solid fa-microscope"></i> ANÁLISIS</span>`;
+                setupCellHtml = `<strong>${t.setup}</strong><br><small style="color: #0284c7; font-weight: 600;">[Estudio: ${t.missedReason || 'Análisis'}]</small>`;
+                pnlCellHtml = `<span class="badge badge-analysis" style="font-size: 0.72rem;">$0.00 (${t.theoreticalOutcome || 'Proy'})</span>`;
+                rrCellHtml = `1:${t.theoreticalRr || t.rr || 0} <small>(Teo)</small>`;
+              } else {
+                pnlCellHtml = `<span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span>`;
+              }
+
               return `
                 <tr style="border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important;">
                   <td class="col-center" style="color: #0f172a !important;"><strong>${idx + 1}</strong></td>
                   <td class="col-center" style="color: #64748b !important; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">${timeDisplay}${durStr}</td>
-                  <td class="col-left" style="color: #0f172a !important;"><strong>${t.asset}</strong></td>
+                  <td class="col-left" style="color: #0f172a !important;"><strong>${t.asset}</strong>${typeBadgeHtml}</td>
                   <td class="col-center"><span class="badge ${t.direction === 'LONG' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
                   <td class="col-center" style="font-size: 0.8rem;">${priceStr}</td>
                   <td class="col-center" style="color: #0f172a !important;">${t.lots}</td>
-                  <td class="col-left" style="color: #0f172a !important;">${t.setup}</td>
-                  <td class="col-right"><span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">$${t.pnl.toFixed(2)}</span></td>
-                  <td class="col-center" style="color: #0f172a !important;">1:${t.rr}</td>
+                  <td class="col-left" style="color: #0f172a !important;">${setupCellHtml}</td>
+                  <td class="col-right">${pnlCellHtml}</td>
+                  <td class="col-center" style="color: #0f172a !important;">${rrCellHtml}</td>
                   <td class="col-center">
                     ${t.chartImage || t.chartUrl ? `<span style="color: #059669; font-weight: 700; cursor: pointer; font-size: 0.78rem; white-space: nowrap;" onclick="openLightbox('${t.chartImage || t.chartUrl}')"><i class="fa-solid fa-camera"></i> Anexo #${idx + 1}</span>` : '-'}
                   </td>
@@ -3226,10 +3517,10 @@ function buildDailyPersonalHTML(s) {
             <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
                 <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
-                  📷 Anexo #${s.trades.indexOf(t) + 1}: ${t.asset} (${t.direction}) &mdash; Setup: ${t.setup}
+                  📷 Anexo #${s.trades.indexOf(t) + 1}: ${t.asset} (${t.direction}) &mdash; Setup: ${t.setup} ${t.tradeType === 'MISSED' ? '[OMITIDO]' : (t.tradeType === 'ANALYSIS' ? '[ANÁLISIS]' : '')}
                 </span>
-                <span class="badge ${t.pnl >= 0 ? 'badge-profit' : 'badge-loss'}">
-                  ${t.pnl >= 0 ? '+$' : '-$'}${Math.abs(t.pnl).toFixed(2)} USD (R:R 1:${t.rr})
+                <span class="badge ${t.tradeType === 'MISSED' ? 'badge-missed' : (t.tradeType === 'ANALYSIS' ? 'badge-analysis' : (t.pnl >= 0 ? 'badge-profit' : 'badge-loss'))}">
+                  ${(t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS') ? `Teórico: ${t.theoreticalOutcome || 'TP'} (1:${t.theoreticalRr || t.rr || 0}R)` : `${t.pnl >= 0 ? '+$' : '-$'}${Math.abs(t.pnl).toFixed(2)} USD (R:R 1:${t.rr})`}
                 </span>
               </div>
               ${t.notes ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Notas / Bitácora:</strong> ${t.notes}</p>` : ''}
@@ -3549,7 +3840,7 @@ function buildDailyMarkdown(s) {
     md += `\n`;
   }
 
-  md += `## 2. OPERACIONES EJECUTADAS (EN VIVO)\n`;
+  md += `## 2. OPERACIONES Y REGISTRO DE MERCADO\n`;
   if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
     const sessionReason = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación / Rango sucio';
     const sessionNotes = s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Sin trades ejecutados según el plan.';
@@ -3560,10 +3851,16 @@ function buildDailyMarkdown(s) {
     md += `- **Motivo de No Operar:** ${sessionReason}\n`;
     md += `- **Análisis Técnico / Observaciones:** ${sessionNotes}\n`;
     md += `- **Captura del Gráfico:** ${imgRef}\n\n`;
-  } else if (s.trades && s.trades.length > 0) {
+  }
+
+  const executedTrades = (s.trades || []).filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
+  const missedTrades = (s.trades || []).filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
+
+  if (executedTrades.length > 0) {
+    md += `### ⚡ Operaciones Ejecutadas en Vivo (${executedTrades.length}):\n`;
     md += `| # | Hora | Activo | Tipo | Entrada | Salida | Pts/Pips | Lotes | Setup | P&L ($) | R:R | Captura Gráfico | Psicología / Notas |\n`;
     md += `|---|---|---|---|---|---|---|---|---|---|---|---|---|\n`;
-    s.trades.forEach((t, i) => {
+    executedTrades.forEach((t, i) => {
       const imgRef = t.chartImage ? `[Pantallazo Adjunto]` : (t.chartUrl ? `[Link Gráfico](${t.chartUrl})` : '-');
       const entryStr = (t.entryPrice !== null && t.entryPrice !== undefined) ? t.entryPrice : '-';
       const exitStr = (t.exitPrice !== null && t.exitPrice !== undefined) ? t.exitPrice : '-';
@@ -3574,7 +3871,22 @@ function buildDailyMarkdown(s) {
       md += `| ${i + 1} | ${timeStr}${durStr} | ${t.asset} | ${t.direction} | ${entryStr} | ${exitStr} | ${ptsStr} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
     });
     md += `\n`;
-  } else {
+  }
+
+  if (missedTrades.length > 0) {
+    md += `### 🧠 Trades Omitidos (Missed Trades) & Análisis Técnico (${missedTrades.length}):\n`;
+    md += `*Operaciones que se dejaron pasar, dudaron en gatillar o proyecciones técnicas de estudio:*\n`;
+    md += `| # | Activo | Dirección | Setup | Motivo de Omisión | Desenlace Teórico | R:R Teórico | Captura | Notas / Bitácora |\n`;
+    md += `|---|---|---|---|---|---|---|---|---|\n`;
+    missedTrades.forEach((t, i) => {
+      const imgRef = t.chartImage ? `[Pantallazo Adjunto]` : (t.chartUrl ? `[Link Gráfico](${t.chartUrl})` : '-');
+      const outcomeText = t.theoreticalOutcome === 'TP' ? '✅ TP Teórico' : (t.theoreticalOutcome === 'SL' ? '❌ SL Teórico' : (t.theoreticalOutcome === 'BE' ? 'BE' : 'Sin Definir'));
+      md += `| ${i + 1} | ${t.asset} | ${t.direction} | ${t.setup} | **${t.missedReason || 'Omitido'}** | ${outcomeText} | 1:${t.theoreticalRr || t.rr || 0}R | ${imgRef} | ${t.notes || '-'} |\n`;
+    });
+    md += `\n`;
+  }
+
+  if (executedTrades.length === 0 && missedTrades.length === 0 && !(s.noTrades || s.checklist?.noTradeSession?.noTrades)) {
     md += `*No se registraron operaciones individuales en esta sesión.*\n\n`;
   }
 
@@ -3584,7 +3896,9 @@ function buildDailyMarkdown(s) {
 
   md += `---\n\n`;
   md += `## PROMPT DE ANÁLISIS PARA NOTEBOOKLM\n`;
-  if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
+  if (missedTrades.length > 0) {
+    md += `> *"Actúa como mi Head Trader y Coach de Psicología de Prop Firm. Presta especial atención tanto a mis operaciones ejecutadas como a los ${missedTrades.length} trade(s) omitidos por vacilación o velocidad. Audita si mis setups eran estadísticamente válidos y dame 3 consejos concretos para eliminar la duda y tener un gatillo disciplinado en la próxima sesión."*\n`;
+  } else if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
     const reasonText = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación';
     md += `> *"Actúa como mi Head Trader y Mentor de Psicología en Trading de Cuentas de Fondeo. En esta sesión de hoy NO abrí operaciones para preservar mi capital y apegarme a mi plan. Lee este reporte y evalúa mi decisión de no operar por '${reasonText}'. Analiza la disciplina demostrada al no forzar entradas y dame recomendaciones para mantener esta paciencia en las próximas sesiones."*\n`;
   } else {
@@ -3627,21 +3941,26 @@ function buildConsolidatedMarkdown(rangeType) {
   let wins = 0;
   let losses = 0;
   let totalTrades = 0;
+  let totalMissedTrades = 0;
   let grossProfit = 0;
   let grossLoss = 0;
   let disciplineSum = 0;
 
   relevant.forEach(s => {
-    totalPnl += s.netPnl;
+    totalPnl += (s.netPnl || 0);
     disciplineSum += s.disciplineScore || 10;
-    s.trades.forEach(t => {
+    (s.trades || []).forEach(t => {
+      if (t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS') {
+        totalMissedTrades++;
+        return;
+      }
       totalTrades++;
-      if (t.pnl >= 0) {
+      if ((t.pnl || 0) >= 0) {
         wins++;
-        grossProfit += t.pnl;
+        grossProfit += (t.pnl || 0);
       } else {
         losses++;
-        grossLoss += Math.abs(t.pnl);
+        grossLoss += Math.abs(t.pnl || 0);
       }
     });
   });
@@ -3663,7 +3982,10 @@ function buildConsolidatedMarkdown(rangeType) {
   md += `## 📊 RESUMEN EJECUTIVO DEL PERÍODO\n`;
   md += `- **Sesiones Incluidas:** ${relevant.length}\n`;
   md += `- **P&L Total Acumulado:** $${totalPnl.toFixed(2)} (${totalPnl >= 0 ? 'PROFIT' : 'DRAWDOWN'})\n`;
-  md += `- **Win Rate:** ${winRate}% (${wins} Ganadas / ${losses} Perdidas en ${totalTrades} trades)\n`;
+  md += `- **Win Rate (Operaciones Reales):** ${winRate}% (${wins} Ganadas / ${losses} Perdidas en ${totalTrades} trades ejecutados)\n`;
+  if (totalMissedTrades > 0) {
+    md += `- **Trades Omitidos / Análisis Registrados:** ${totalMissedTrades} oportunidades auditadas\n`;
+  }
   md += `- **Profit Factor:** ${profitFactor}\n`;
   md += `- **Promedio de Disciplina:** ${avgDiscipline}/10\n\n`;
 
@@ -3687,16 +4009,33 @@ function buildConsolidatedMarkdown(rangeType) {
     md += `- **Errores Identificados:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
     md += `- **Lección Principal / Reflexión:** ${s.takeaway || 'Sin notas adicionales.'}\n\n`;
 
-    if (s.trades && s.trades.length > 0) {
+    const sessExecuted = (s.trades || []).filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
+    const sessMissed = (s.trades || []).filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
+
+    if (sessExecuted.length > 0) {
       md += `#### Operaciones Ejecutadas en esta Sesión:\n`;
       md += `| # | Activo | Tipo | Lotes | Setup | P&L ($) | R:R | Captura | Notas / Psicología |\n`;
       md += `|---|---|---|---|---|---|---|---|---|\n`;
-      s.trades.forEach((t, i) => {
+      sessExecuted.forEach((t, i) => {
         const imgRef = t.chartImage ? `[Pantallazo Adjunto]` : (t.chartUrl ? `[Link Gráfico](${t.chartUrl})` : '-');
         md += `| ${i + 1} | ${t.asset} | ${t.direction} | ${t.lots} | ${t.setup} | $${t.pnl.toFixed(2)} | 1:${t.rr} | ${imgRef} | ${t.tags || '-'} ${t.notes ? '(' + t.notes + ')' : ''} |\n`;
       });
       md += `\n`;
-    } else {
+    }
+
+    if (sessMissed.length > 0) {
+      md += `#### 🧠 Trades Omitidos / Análisis de Mercado:\n`;
+      md += `| # | Activo | Setup | Motivo de Omisión | Desenlace Teórico | R:R Teórico | Captura | Notas |\n`;
+      md += `|---|---|---|---|---|---|---|---|\n`;
+      sessMissed.forEach((t, i) => {
+        const imgRef = t.chartImage ? `[Pantallazo Adjunto]` : (t.chartUrl ? `[Link Gráfico](${t.chartUrl})` : '-');
+        const outcomeText = t.theoreticalOutcome === 'TP' ? '✅ TP' : (t.theoreticalOutcome === 'SL' ? '❌ SL' : (t.theoreticalOutcome === 'BE' ? 'BE' : 'Teórico'));
+        md += `| ${i + 1} | ${t.asset} (${t.direction}) | ${t.setup} | **${t.missedReason || 'Omitido'}** | ${outcomeText} | 1:${t.theoreticalRr || t.rr || 0}R | ${imgRef} | ${t.notes || '-'} |\n`;
+      });
+      md += `\n`;
+    }
+
+    if (sessExecuted.length === 0 && sessMissed.length === 0) {
       md += `*No se registraron trades individuales en esta sesión.*\n\n`;
     }
 
@@ -3704,7 +4043,7 @@ function buildConsolidatedMarkdown(rangeType) {
   });
 
   md += `## 🤖 PROMPT AUDITOR DE PERÍODO PARA NOTEBOOKLM\n`;
-  md += `> *"Actúa como mi Head Risk Manager y Coach de Trading de Prop Firm. Analiza este reporte consolidado ${title.toLowerCase()} que contiene el detalle cronológico de mis ${relevant.length} sesiones (desde el ${dateRangeStr}) junto con mi Plan de Trading pre-cargado en esta libreta. Evalúa mi evolución sesión tras sesión, identifica si caí en el ciclo de auge/crisis (sobreconfianza tras rachas positivas o tilteo tras pérdidas), audita mi apego a las reglas y redacta una auditoría con 4 áreas clave de mejora prioritarias para mi próxima semana operativa."*\n`;
+  md += `> *"Actúa como mi Head Risk Manager y Coach de Trading de Prop Firm. Analiza este reporte consolidado ${title.toLowerCase()} que contiene el detalle cronológico de mis ${relevant.length} sesiones (desde el ${dateRangeStr}) junto con mi Plan de Trading pre-cargado en esta libreta. Evalúa mi evolución sesión tras sesión, identifica si caí en el ciclo de auge/crisis (sobreconfianza tras rachas positivas o tilteo tras pérdidas), audita tanto mis ejecuciones como los trades omitidos por duda o prisa, y redacta una auditoría con 4 áreas clave de mejora prioritarias para mi próxima semana operativa."*\n`;
 
   return md;
 }
