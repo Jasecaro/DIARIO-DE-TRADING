@@ -2448,6 +2448,15 @@ input[type="range"] {
   pointer-events: all;
 }
 
+/* Modals Stacking Hierarchy: Modales secundarios o de detalle por encima de modales base */
+#trade-modal {
+  z-index: 2000;
+}
+
+#lightbox-modal {
+  z-index: 2500;
+}
+
 .modal-content {
   background: #ffffff;
   border: 1px solid var(--border-color);
