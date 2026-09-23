@@ -104,14 +104,17 @@ function renderDashboardCalendar(filteredSessions) {
     const isToday = isCurrentMonthActual && (day === actualTodayDate);
 
     if (dayData) {
-      const hasTrades = dayData.trades.length > 0;
+      const executedTrades = dayData.trades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
+      const missedTrades = dayData.trades.filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
+      const hasExecuted = executedTrades.length > 0;
+      const hasMissed = missedTrades.length > 0;
       let cellClass = '';
       let pnlFormatted = '';
       let subText = '';
       let dotClass = '';
 
-      if (hasTrades) {
-        totalMonthTrades += dayData.trades.length;
+      if (hasExecuted) {
+        totalMonthTrades += executedTrades.length;
         monthNetPnl += dayData.netPnl;
 
         if (dayData.netPnl > 0) {
@@ -127,15 +130,30 @@ function renderDashboardCalendar(filteredSessions) {
           dotClass = 'dot-win';
         }
 
-        const winTrades = dayData.trades.filter(t => t.pnl >= 0).length;
-        const winRate = ((winTrades / dayData.trades.length) * 100).toFixed(0);
+        const winTrades = executedTrades.filter(t => (t.pnl || 0) > 0).length;
+        const winRate = ((winTrades / executedTrades.length) * 100).toFixed(0);
         pnlFormatted = formatCompactPnl(dayData.netPnl);
-        subText = `${dayData.trades.length} ${dayData.trades.length === 1 ? 'trade' : 'trades'} • ${winRate}%`;
+
+        const execLabel = `${executedTrades.length} ${executedTrades.length === 1 ? 'trade' : 'trades'} • ${winRate}%`;
+        if (hasMissed) {
+          const missedLabel = missedTrades.length === 1 ? '+1 escapó' : `+${missedTrades.length} escaparon`;
+          subText = `<span>${execLabel}</span><span class="badge-cal-missed" title="${missedTrades.length} trade(s) que se escaparon / omitidos" style="color: #d97706; font-weight: 700; font-size: 0.62rem; background: rgba(245, 158, 11, 0.16); padding: 1px 4px; border-radius: 4px; white-space: nowrap;">${missedLabel}</span>`;
+        } else {
+          subText = `<span>${execLabel}</span>`;
+        }
+      } else if (hasMissed) {
+        // Solo hubo trades que se escaparon / omitidos, sin operaciones ejecutadas
+        patienceDays++;
+        cellClass = 'day-patience';
+        dotClass = 'dot-patience';
+        pnlFormatted = '$0.00';
+        const missedLabel = missedTrades.length === 1 ? '1 escapó' : `${missedTrades.length} escaparon`;
+        subText = `<span>🛡️ Paciencia</span><span class="badge-cal-missed" title="${missedTrades.length} trade(s) que se escaparon / omitidos" style="color: #d97706; font-weight: 700; font-size: 0.62rem; background: rgba(245, 158, 11, 0.16); padding: 1px 4px; border-radius: 4px; white-space: nowrap;">${missedLabel}</span>`;
       } else if (dayData.isPatienceDay || dayData.sessions.length > 0) {
         patienceDays++;
         cellClass = 'day-patience';
         pnlFormatted = '$0.00';
-        subText = '🛡️ Paciencia';
+        subText = '<span>🛡️ Paciencia</span>';
         dotClass = 'dot-patience';
       } else {
         cellClass = '';
@@ -159,7 +177,7 @@ function renderDashboardCalendar(filteredSessions) {
             ${pnlFormatted}
           </div>
           <div class="cal-day-sub">
-            <span>${subText}</span>
+            ${subText}
           </div>
         </div>
       `;
@@ -267,9 +285,11 @@ function openCalendarDayDetails(dateStr) {
 
   const executedTrades = allTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
   const missedTrades = allTrades.filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
-  const wins = executedTrades.filter(t => (t.pnl || 0) >= 0).length;
+  const wins = executedTrades.filter(t => (t.pnl || 0) > 0).length;
   const losses = executedTrades.filter(t => (t.pnl || 0) < 0).length;
+  const be = executedTrades.filter(t => (t.pnl || 0) === 0).length;
   const wr = executedTrades.length > 0 ? ((wins / executedTrades.length) * 100).toFixed(1) : '0.0';
+  const missedDesc = missedTrades.length > 0 ? ` <small style="font-size: 0.72rem; color: #d97706; font-weight: 700;">(+${missedTrades.length} ${missedTrades.length === 1 ? 'escapó' : 'escaparon'})</small>` : '';
 
   let bodyHtml = `
     <div class="cal-modal-summary-grid">
@@ -281,7 +301,7 @@ function openCalendarDayDetails(dateStr) {
       </div>
       <div class="cal-modal-stat-card">
         <div class="label">Operaciones</div>
-        <div class="val">${executedTrades.length}${missedTrades.length > 0 ? ` <small style="font-size: 0.72rem; color: #f59e0b;">(+${missedTrades.length} omi)</small>` : ''}</div>
+        <div class="val">${executedTrades.length}${missedDesc}</div>
       </div>
       <div class="cal-modal-stat-card">
         <div class="label">Win Rate</div>
@@ -289,7 +309,7 @@ function openCalendarDayDetails(dateStr) {
       </div>
       <div class="cal-modal-stat-card">
         <div class="label">Ganadas / Perdidas</div>
-        <div class="val" style="font-size: 1.05rem;">${wins}W / ${losses}L</div>
+        <div class="val" style="font-size: 1.05rem;">${wins}W / ${losses}L${be > 0 ? ` / ${be}BE` : ''}</div>
       </div>
     </div>
   `;
@@ -331,9 +351,13 @@ function openCalendarDayDetails(dateStr) {
 
   // Trades List
   if (allTrades.length > 0) {
+    const titleOps = executedTrades.length > 0
+      ? `Operaciones de la Sesión (${executedTrades.length} Ejecutada${executedTrades.length === 1 ? '' : 's'}${missedTrades.length > 0 ? ` • ${missedTrades.length} que se escapó` : ''})`
+      : `Trades Omitidos / En Estudio (${missedTrades.length} que se escapó)`;
+
     bodyHtml += `
       <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-        <i class="fa-solid fa-list-check" style="color: var(--accent-primary);"></i> Operaciones Ejecutadas (${allTrades.length})
+        <i class="fa-solid fa-list-check" style="color: var(--accent-primary);"></i> ${titleOps}
       </h4>
       <div style="display: flex; flex-direction: column; gap: 0.75rem;">
     `;

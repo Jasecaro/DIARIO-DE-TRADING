@@ -422,6 +422,8 @@ window.addEventListener('afterprint', () => {
    ========================================================================== */
 
 
+let marketSessionsInterval = null;
+
 function initMarketSessionsClock() {
   updateMarketSessionsClock();
   if (!marketSessionsInterval) {

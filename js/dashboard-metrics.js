@@ -150,13 +150,18 @@ function renderRecentSessionsTable(recentSessions) {
   tbody.innerHTML = recentSessions.map(s => {
     const isWin = s.netPnl >= 0;
     const pnlClass = isWin ? 'badge-profit' : 'badge-loss';
+    const executedTrades = (s.trades || []).filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS');
+    const missedTrades = (s.trades || []).filter(t => t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS');
+    const tradesText = s.noTrades
+      ? '<span class="badge badge-no-trades" style="font-size: 0.72rem;">0 Trades (Paciencia)</span>'
+      : `${executedTrades.length} Trade${executedTrades.length === 1 ? '' : 's'}${missedTrades.length > 0 ? ` <span style="color: #d97706; font-size: 0.72rem; font-weight: 700;" title="${missedTrades.length} que se escapó">(+${missedTrades.length} escapó)</span>` : ''}`;
     
     return `
       <tr>
         <td><strong>${s.date}</strong> <br><span style="font-size: 0.75rem; color: var(--text-subtle);">${s.timeSlot}</span></td>
         <td>${s.account}</td>
         <td><span class="chip" style="font-size: 0.75rem;">${s.preEmotion}</span></td>
-        <td>${s.trades ? s.trades.length : 0} Trades</td>
+        <td>${tradesText}</td>
         <td><span class="badge ${pnlClass}">$${s.netPnl.toFixed(2)}</span></td>
         <td><strong>${s.disciplineScore}/10</strong></td>
         <td>
@@ -383,7 +388,4 @@ function updateHomeCloudCard() {
     }
   }
 }
-
-// 2. Reloj y Monitor de Sesiones Mundiales de Mercado
-let marketSessionsInterval = null;
 
