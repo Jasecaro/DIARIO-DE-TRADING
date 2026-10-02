@@ -1,6 +1,22 @@
 /* ==========================================================================
    TheRaiseTrader - NOTEBOOKLM REPORTS & CONSOLIDATED REVIEWS
    ========================================================================== */
+
+function getSessionChartMedia(s) {
+  if (!s) return null;
+  return s.sessionChartImage ||
+         s.chartImage ||
+         s.checklist?.sessionChartImage ||
+         s.checklist?.postSessionChart ||
+         s.checklist?.noTradeSession?.chartImage ||
+         s.sessionChartUrl ||
+         s.chartUrl ||
+         s.checklist?.sessionChartUrl ||
+         s.checklist?.postSessionChartUrl ||
+         s.checklist?.noTradeSession?.chartUrl ||
+         null;
+}
+
 function getMondayAndSunday(dateStr) {
   if (!dateStr || !dateStr.includes('-')) return { monday: '', sunday: '', friday: '' };
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -347,10 +363,11 @@ function buildDailyPersonalHTML(s) {
 
   `;
 
+  const sessionChart = getSessionChartMedia(s);
+
   if (s.noTrades || s.checklist?.noTradeSession?.noTrades) {
     const sessionReason = s.noTradeReason || s.checklist?.noTradeSession?.reason || 'Mercado en Consolidación / Sin ventaja estadística';
     const sessionNotes = s.noTradeNotes || s.checklist?.noTradeSession?.notes || s.takeaway || 'Se preservó el capital al no presentarse ventajas claras en el mercado.';
-    const sessionChart = s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
 
     html += `
       <div style="background: #f0fdf4; border: 1.5px solid #86efac; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
@@ -374,7 +391,7 @@ function buildDailyPersonalHTML(s) {
             <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
               📷 Captura del Gráfico de la Sesión (Análisis Técnico & Justificación)
             </span>
-            <span class="badge badge-profit">0 Trades / Disciplina 10/10</span>
+            <span class="badge badge-profit">0 Trades / Disciplina ${s.disciplineScore || 10}/10</span>
           </div>
           <div style="text-align: center;">
             <img src="${sessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver fullscreen">
@@ -481,8 +498,7 @@ function buildDailyPersonalHTML(s) {
   `;
 
   // Captura General de la Sesión Completa (si no es sesión sin operaciones, donde ya se muestra arriba)
-  const generalSessionChart = s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
-  if (!s.noTrades && !s.checklist?.noTradeSession?.noTrades && generalSessionChart) {
+  if (!s.noTrades && !s.checklist?.noTradeSession?.noTrades && sessionChart) {
     html += `
       <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
         <div class="annex-card" style="background: #ffffff; border: 1.5px solid #cbd5e1; padding: 1.25rem; border-radius: 8px; box-shadow: var(--shadow-sm);">
@@ -495,7 +511,7 @@ function buildDailyPersonalHTML(s) {
             </span>
           </div>
           <div style="text-align: center;">
-            <img src="${generalSessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
+            <img src="${sessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
           </div>
         </div>
       </div>
@@ -657,25 +673,10 @@ function buildConsolidatedPersonalHTML(rangeType) {
   let totalTrades = 0;
   let grossProfit = 0;
   let grossLoss = 0;
-  const allAnnexItems = [];
+  const allAnnexTrades = [];
 
   relevant.forEach((s, idx) => {
     totalPnl += (s.netPnl || 0);
-
-    const sessionChart = s.sessionChartImage || s.chartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
-    if (sessionChart) {
-      allAnnexItems.push({
-        type: 'session',
-        dayNumber: idx + 1,
-        sessionDate: s.date,
-        account: s.account,
-        imageUrl: sessionChart,
-        netPnl: s.netPnl || 0,
-        noTrades: s.noTrades || s.checklist?.noTradeSession?.noTrades,
-        noTradeReason: s.noTradeReason || s.checklist?.noTradeSession?.reason,
-        takeaway: s.takeaway
-      });
-    }
 
     (s.trades || []).forEach((t, tIdx) => {
       if (t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS') {
@@ -690,8 +691,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
       }
 
       if (t.chartImage || t.chartUrl) {
-        allAnnexItems.push({
-          type: 'trade',
+        allAnnexTrades.push({
           dayNumber: idx + 1,
           tradeNumber: tIdx + 1,
           sessionDate: s.date,
@@ -749,7 +749,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
 
   relevant.forEach((s, idx) => {
     const isWin = (s.netPnl || 0) >= 0;
-    const sessionChart = s.sessionChartImage || s.chartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
+    const sessionChart = getSessionChartMedia(s);
     const isNoTrades = s.noTrades || s.checklist?.noTradeSession?.noTrades;
 
     html += `
@@ -797,7 +797,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
               <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
                 📷 Captura del Gráfico de la Sesión (${s.date} - ${s.account})
               </span>
-              <span class="badge badge-profit" style="font-size: 0.75rem;">0 Trades / Disciplina 10/10</span>
+              <span class="badge badge-profit" style="font-size: 0.75rem;">0 Trades / Disciplina ${s.disciplineScore || 10}/10</span>
             </div>
             <div style="text-align: center;">
               <img src="${sessionChart}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 440px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
@@ -864,7 +864,7 @@ function buildConsolidatedPersonalHTML(rangeType) {
             <div class="annex-card" style="background: #ffffff; border: 1.5px solid #cbd5e1; padding: 1rem; border-radius: 8px; box-shadow: var(--shadow-sm);">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                 <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
-                  <i class="fa-solid fa-camera-retro" style="color: #4f46e5;"></i> Captura General de la Sesión Completa (${s.date} - ${s.account})
+                  <i class="fa-solid fa-camera-retro" style="color: #4f46e5;"></i> Captura del Gráfico de la Sesión (${s.date} - ${s.account})
                 </span>
                 <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5; border: 1px solid rgba(79, 70, 229, 0.25); font-size: 0.75rem;">
                   Visión Macro del Día
@@ -898,68 +898,42 @@ function buildConsolidatedPersonalHTML(rangeType) {
     html += `</div>`;
   });
 
-  // Consolidated Chart Annex (Both Session General Charts and Individual Trade Charts)
-  if (allAnnexItems.length > 0) {
-    const sessionImgsCount = allAnnexItems.filter(i => i.type === 'session').length;
-    const tradeImgsCount = allAnnexItems.filter(i => i.type === 'trade').length;
-
+  // Consolidated Chart Annex (Trade Charts only)
+  if (allAnnexTrades.length > 0) {
     html += `
       <div class="print-page-break" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px dashed #cbd5e1;">
         <h3 style="font-family: var(--font-heading); color: #4f46e5 !important; margin-bottom: 0.5rem; font-size: 1.3rem;">
-          <i class="fa-solid fa-images"></i> ANEXO CONSOLIDADO DE CAPTURAS Y ANÁLISIS GRÁFICO
+          <i class="fa-solid fa-images"></i> ANEXO: CAPTURAS DE PANTALLA DE OPERACIONES
         </h3>
         <p style="font-size: 0.85rem; color: #64748b !important; margin-bottom: 1rem;">
-          Galería completa de capturas de pantalla registradas en el período (${allAnnexItems.length} imágenes en orden cronológico: ${sessionImgsCount} de sesión completa macro y ${tradeImgsCount} de operaciones individuales):
+          Galería de capturas registradas en las operaciones individuales del período (${allAnnexTrades.length} imágenes en orden cronológico):
         </p>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-          ${allAnnexItems.map((item, idx) => {
-            if (item.type === 'session') {
-              const isProfit = (item.netPnl || 0) >= 0;
-              const pnlBadge = item.noTrades
-                ? `<span class="badge badge-profit" style="font-size: 0.8rem;">0 Trades (Capital Protegido)</span>`
-                : `<span class="badge ${isProfit ? 'badge-profit' : 'badge-loss'}">${isProfit ? '+$' : '-$'}${Math.abs(item.netPnl).toFixed(2)} USD</span>`;
-
-              return `
-                <div class="annex-card" style="background: #ffffff; border: 1.5px solid #cbd5e1; padding: 1.25rem; border-radius: 8px; box-shadow: var(--shadow-sm);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
-                      <i class="fa-solid fa-camera-retro" style="color: #4f46e5;"></i> Anexo #${idx + 1}: ${item.sessionDate} (${item.account}) &mdash; Captura General de la Sesión Completa (Visión Macro)
-                    </span>
-                    ${pnlBadge}
-                  </div>
-                  ${item.noTradeReason ? `<p style="font-size: 0.85rem; color: #15803d !important; margin-top: 0.5rem;"><strong>Motivo de No Operar:</strong> ${item.noTradeReason}</p>` : ''}
-                  ${item.takeaway ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Reflexión / Lección Clave:</strong> ${item.takeaway}</p>` : ''}
-                  <div style="text-align: center; margin-top: 0.75rem;">
-                    <img src="${item.imageUrl}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
-                  </div>
-                </div>
-              `;
+          ${allAnnexTrades.map((item, idx) => {
+            const t = item.trade;
+            let badgeHtml = '';
+            if (t.tradeType === 'MISSED') {
+              badgeHtml = `<span class="badge badge-missed">OMITIDO: Teórico ${t.theoreticalOutcome || 'TP'} (1:${t.theoreticalRr || t.rr || 0}R)</span>`;
+            } else if (t.tradeType === 'ANALYSIS') {
+              badgeHtml = `<span class="badge badge-analysis">ANÁLISIS: Proy. ${t.theoreticalOutcome || 'TP'} (1:${t.theoreticalRr || t.rr || 0}R)</span>`;
             } else {
-              const t = item.trade;
-              let badgeHtml = '';
-              if (t.tradeType === 'MISSED') {
-                badgeHtml = `<span class="badge badge-missed">OMITIDO: Teórico ${t.theoreticalOutcome || 'TP'} (1:${t.theoreticalRr || t.rr || 0}R)</span>`;
-              } else if (t.tradeType === 'ANALYSIS') {
-                badgeHtml = `<span class="badge badge-analysis">ANÁLISIS: Proy. ${t.theoreticalOutcome || 'TP'} (1:${t.theoreticalRr || t.rr || 0}R)</span>`;
-              } else {
-                badgeHtml = `<span class="badge ${(t.pnl || 0) >= 0 ? 'badge-profit' : 'badge-loss'}">${(t.pnl || 0) >= 0 ? '+$' : '-$'}${Math.abs(t.pnl || 0).toFixed(2)} USD (Setup: ${t.setup || '-'})</span>`;
-              }
-
-              return `
-                <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
-                      📷 Anexo #${idx + 1}: ${item.sessionDate} (${item.account}) &mdash; Trade #${item.tradeNumber}: ${t.asset} (${t.direction})
-                    </span>
-                    ${badgeHtml}
-                  </div>
-                  ${t.notes ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Notas / Bitácora:</strong> ${t.notes}</p>` : ''}
-                  <div style="text-align: center; margin-top: 0.75rem;">
-                    <img src="${item.imageUrl}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
-                  </div>
-                </div>
-              `;
+              badgeHtml = `<span class="badge ${(t.pnl || 0) >= 0 ? 'badge-profit' : 'badge-loss'}">${(t.pnl || 0) >= 0 ? '+$' : '-$'}${Math.abs(t.pnl || 0).toFixed(2)} USD (Setup: ${t.setup || '-'})</span>`;
             }
+
+            return `
+              <div class="annex-card" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                  <span style="font-family: var(--font-heading); font-weight: 700; color: #0f172a !important; font-size: 1.05rem;">
+                    📷 Anexo #${idx + 1}: ${item.sessionDate} (${item.account}) &mdash; Trade #${item.tradeNumber}: ${t.asset} (${t.direction})
+                  </span>
+                  ${badgeHtml}
+                </div>
+                ${t.notes ? `<p style="font-size: 0.85rem; color: #64748b !important; margin-top: 0.5rem;"><strong>Notas / Bitácora:</strong> ${t.notes}</p>` : ''}
+                <div style="text-align: center; margin-top: 0.75rem;">
+                  <img src="${item.imageUrl}" class="annex-img" onclick="openLightbox(this.src)" title="Haz clic para ver en pantalla completa" style="max-height: 480px; width: auto; max-width: 100%; border-radius: 6px; cursor: pointer;">
+                </div>
+              </div>
+            `;
           }).join('')}
         </div>
       </div>
@@ -1067,9 +1041,10 @@ function buildDailyMarkdown(s) {
   md += `## 3. RETROSPECTIVA & PSICOLOGÍA POST-MERCADO\n`;
   md += `- **Errores Cometidos:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
   md += `- **Lección Clave del Día:** ${s.takeaway || 'Sin comentarios.'}\n`;
-  const postSessionChartRef = (s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) 
+  const postSessionChartMedia = getSessionChartMedia(s);
+  const postSessionChartRef = (postSessionChartMedia && !postSessionChartMedia.startsWith('http'))
     ? '[Pantallazo General de la Sesión Adjunto]' 
-    : ((s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `[Link Gráfico](${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl})` : null);
+    : (postSessionChartMedia ? `[Link Gráfico](${postSessionChartMedia})` : null);
   if (postSessionChartRef && !s.noTrades && !s.checklist?.noTradeSession?.noTrades) {
     md += `- **Pantallazo General de la Sesión:** ${postSessionChartRef}\n`;
   }
@@ -1190,9 +1165,10 @@ function buildConsolidatedMarkdown(rangeType) {
     md += `- **Errores Identificados:** ${s.mistakes || 'Ninguno - Seguí mi plan a la perfección.'}\n`;
     md += `- **Lección Principal / Reflexión:** ${s.takeaway || 'Sin notas adicionales.'}\n`;
 
-    const sessChartRef = (s.sessionChartImage || s.chartImage || s.checklist?.noTradeSession?.chartImage)
+    const sessChartMedia = getSessionChartMedia(s);
+    const sessChartRef = (sessChartMedia && !sessChartMedia.startsWith('http'))
       ? '[Pantallazo General de la Sesión Adjunto]'
-      : ((s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `[Link Gráfico](${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl})` : null);
+      : (sessChartMedia ? `[Link Gráfico](${sessChartMedia})` : null);
     if (sessChartRef) {
       md += `- **Captura General de la Sesión:** ${sessChartRef}\n`;
     }

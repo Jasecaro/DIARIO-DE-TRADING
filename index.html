@@ -2424,6 +2424,35 @@ Por ejemplo:
             <textarea id="edit-session-takeaway" class="form-control" rows="3" placeholder="¿Qué aprendiste hoy?"></textarea>
           </div>
 
+          <!-- Captura / Pantallazo General de la Sesión Completa -->
+          <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fa-solid fa-camera-retro" style="color: var(--accent-primary);"></i> Captura del Gráfico de la Sesión (Visión Macro)</span>
+            </label>
+            <div class="image-upload-box" id="edit-session-chart-drop-zone">
+              <div id="edit-session-upload-prompt" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center;">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--accent-primary);"></i>
+                <div>
+                  <strong>Sube el gráfico general de la sesión</strong> o <span style="color: var(--accent-primary); text-decoration: underline; cursor: pointer;" onclick="document.getElementById('edit-session-chart-file').click()">haz clic para buscar</span>
+                  <br><span style="font-size: 0.78rem; color: var(--text-subtle);">O presiona <strong>Ctrl + V</strong> para pegar la imagen</span>
+                </div>
+                <input type="file" id="edit-session-chart-file" accept="image/*" style="display: none;" onchange="handleEditSessionChartFile(event)">
+              </div>
+
+              <!-- Preview Container -->
+              <div id="edit-session-chart-preview-wrapper" style="display: none; margin-top: 0.5rem; position: relative; text-align: center;">
+                <img id="edit-session-chart-preview-img" src="" alt="Gráfico de la Sesión" style="max-width: 100%; max-height: 220px; border-radius: var(--radius-md); border: 1px solid var(--border-color); object-fit: contain; cursor: pointer;" onclick="openLightbox(this.src)" title="Haz clic para ver fullscreen">
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeEditSessionChartPreview()" style="position: absolute; top: 6px; right: 6px; padding: 3px 8px; font-size: 0.75rem;">
+                  <i class="fa-solid fa-trash"></i> Eliminar
+                </button>
+              </div>
+            </div>
+            <div style="margin-top: 0.4rem;">
+              <input type="text" id="edit-session-chart-url" class="form-control" placeholder="https://www.tradingview.com/x/... (o pega enlace externo)">
+            </div>
+            <input type="hidden" id="edit-session-chart-base64" value="">
+          </div>
+
           <div id="edit-session-trades-summary" style="background: var(--bg-card-hover); padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.82rem;">
             <!-- Summary of trades & PnL dynamically rendered -->
           </div>

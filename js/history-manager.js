@@ -173,11 +173,15 @@ function renderHistory() {
               </tbody>
             </table>
           </div>
-          ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
+          ${(() => {
+            const chartImg = s.sessionChartImage || s.chartImage || s.checklist?.sessionChartImage || s.checklist?.postSessionChart || s.checklist?.noTradeSession?.chartImage;
+            const chartUrl = s.sessionChartUrl || s.chartUrl || s.checklist?.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
+            if (!chartImg && !chartUrl) return '';
+            return `
             <div style="margin-top: 0.85rem; padding: 0.65rem 0.9rem; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.65rem;">
-                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
-                  <img src="${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}" class="chart-thumbnail" style="width: 50px; height: 50px; border-radius: 6px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver pantallazo general de la sesión">
+                ${chartImg ? `
+                  <img src="${chartImg}" class="chart-thumbnail" style="width: 50px; height: 50px; border-radius: 6px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver pantallazo general de la sesión">
                 ` : ''}
                 <div>
                   <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 5px;">
@@ -187,19 +191,20 @@ function renderHistory() {
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="openLightbox('${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}')" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                ${chartImg ? `
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openLightbox('${chartImg}')" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
                     <i class="fa-solid fa-expand"></i> Ver Pantallazo
                   </button>
                 ` : ''}
-                ${(s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
-                  <a href="${s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                ${chartUrl ? `
+                  <a href="${chartUrl}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver Gráfico
                   </a>
                 ` : ''}
               </div>
             </div>
-          ` : ''}
+            `;
+          })()}
         ` : '<p style="font-size: 0.8rem; color: var(--text-subtle);">No se registraron trades individuales en esta sesión.</p>')}
       </div>
     `;
@@ -269,6 +274,20 @@ function openEditSessionModal(sessionId) {
   if (adherenceInput) adherenceInput.value = s.adherence || '100% - Ejecución Perfecta según el plan';
   if (takeawayInput) takeawayInput.value = s.takeaway || '';
 
+  // Captura / Pantallazo del gráfico de la sesión
+  const existingChartImg = s.sessionChartImage || s.chartImage || s.checklist?.sessionChartImage || s.checklist?.postSessionChart || s.checklist?.noTradeSession?.chartImage || '';
+  const existingChartUrl = s.sessionChartUrl || s.chartUrl || s.checklist?.sessionChartUrl || s.checklist?.postSessionChartUrl || s.checklist?.noTradeSession?.chartUrl || '';
+
+  const chartUrlInput = document.getElementById('edit-session-chart-url');
+  if (chartUrlInput) chartUrlInput.value = existingChartUrl;
+
+  if (existingChartImg) {
+    setEditSessionChartPreview(existingChartImg);
+  } else {
+    removeEditSessionChartPreview();
+    if (existingChartUrl && chartUrlInput) chartUrlInput.value = existingChartUrl;
+  }
+
   const summaryEl = document.getElementById('edit-session-trades-summary');
   if (summaryEl) {
     const tradesCount = (s.trades || []).length;
@@ -334,6 +353,121 @@ function setEditSessionDateToday() {
   }
 }
 
+// Helpers para subida y compresión de captura en modal de editar sesión
+function handleEditSessionChartFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  processEditSessionImageFile(file);
+}
+
+function processEditSessionImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showToast('Por favor selecciona un archivo de imagen válido.', 'warning');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawBase64 = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 1400;
+      const MAX_HEIGHT = 1000;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+      setEditSessionChartPreview(compressedBase64);
+    };
+    img.src = rawBase64;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setEditSessionChartPreview(base64Src) {
+  const hiddenInput = document.getElementById('edit-session-chart-base64');
+  const previewImg = document.getElementById('edit-session-chart-preview-img');
+  const wrapper = document.getElementById('edit-session-chart-preview-wrapper');
+  const prompt = document.getElementById('edit-session-upload-prompt');
+  if (hiddenInput) hiddenInput.value = base64Src;
+  if (previewImg) previewImg.src = base64Src;
+  if (wrapper) wrapper.style.display = 'block';
+  if (prompt) prompt.style.display = 'none';
+}
+
+function removeEditSessionChartPreview() {
+  const hiddenInput = document.getElementById('edit-session-chart-base64');
+  const fileInput = document.getElementById('edit-session-chart-file');
+  const previewImg = document.getElementById('edit-session-chart-preview-img');
+  const wrapper = document.getElementById('edit-session-chart-preview-wrapper');
+  const prompt = document.getElementById('edit-session-upload-prompt');
+  const urlInput = document.getElementById('edit-session-chart-url');
+  if (hiddenInput) hiddenInput.value = '';
+  if (fileInput) fileInput.value = '';
+  if (previewImg) previewImg.src = '';
+  if (urlInput) urlInput.value = '';
+  if (wrapper) wrapper.style.display = 'none';
+  if (prompt) prompt.style.display = 'flex';
+}
+
+// Configurar drop zone y pegado para el modal de editar sesión
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('edit-session-chart-drop-zone');
+  if (dropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+    });
+    dropZone.addEventListener('drop', e => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        processEditSessionImageFile(files[0]);
+      }
+    }, false);
+  }
+
+  // Pegar Ctrl + V cuando el modal de edición está abierto
+  window.addEventListener('paste', e => {
+    const editModal = document.getElementById('edit-session-modal');
+    if (!editModal || !editModal.classList.contains('active')) return;
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          processEditSessionImageFile(file);
+          showToast('Gráfico pegado exitosamente.', 'success');
+          break;
+        }
+      }
+    }
+  });
+});
+
 function handleSaveEditedSession(e) {
   if (e) e.preventDefault();
   const id = document.getElementById('edit-session-id')?.value;
@@ -351,6 +485,27 @@ function handleSaveEditedSession(e) {
   s.disciplineScore = parseInt(document.getElementById('edit-session-discipline')?.value) || s.disciplineScore;
   s.adherence = document.getElementById('edit-session-adherence')?.value || s.adherence;
   s.takeaway = document.getElementById('edit-session-takeaway')?.value || s.takeaway;
+
+  // Guardar captura de la sesión
+  const chartImgVal = document.getElementById('edit-session-chart-base64')?.value || '';
+  const chartUrlVal = document.getElementById('edit-session-chart-url')?.value.trim() || '';
+
+  const finalImg = chartImgVal || null;
+  const finalUrl = chartUrlVal || null;
+
+  s.sessionChartImage = finalImg;
+  s.sessionChartUrl = finalUrl;
+  s.chartImage = finalImg;
+  s.chartUrl = finalUrl;
+
+  if (!s.checklist) s.checklist = {};
+  s.checklist.sessionChartImage = finalImg;
+  s.checklist.sessionChartUrl = finalUrl;
+
+  if (s.checklist.noTradeSession) {
+    s.checklist.noTradeSession.chartImage = finalImg;
+    s.checklist.noTradeSession.chartUrl = finalUrl;
+  }
 
   // Actualizar también la fecha en los trades registrados
   if (Array.isArray(s.trades)) {
@@ -372,7 +527,7 @@ function handleSaveEditedSession(e) {
   closeEditSessionModal();
   closeCalendarDayModal();
 
-  showToast(`¡Sesión actualizada! Movida de ${oldDate} al ${newDate}`, 'success');
+  showToast(`¡Sesión actualizada! Datos y gráfico guardados exitosamente.`, 'success');
 }
 
 // Mover sesión rápidamente al día de hoy en un clic

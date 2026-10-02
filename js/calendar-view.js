@@ -502,24 +502,39 @@ function openCalendarDayDetails(dateStr) {
       const pnlColor = isWin ? 'var(--profit)' : 'var(--loss)';
       const tradesCount = (s.trades || []).length;
       
+      const sessImg = s.sessionChartImage || s.chartImage || s.checklist?.sessionChartImage || s.checklist?.postSessionChart || s.checklist?.noTradeSession?.chartImage;
+      const sessUrl = s.sessionChartUrl || s.chartUrl || s.checklist?.sessionChartUrl || s.checklist?.postSessionChartUrl || s.checklist?.noTradeSession?.chartUrl;
+      const mediaSrc = sessImg || sessUrl;
+
       bodyHtml += `
         <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-hover); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.6rem;">
-          <div style="font-size: 0.83rem;">
-            <span style="font-weight: 700; color: var(--text-main);">${s.account || 'Cuenta'}</span> &bull; 
-            <span style="color: var(--text-muted);">${s.timeSlot || 'Turno'}</span>
-            <span style="margin-left: 8px; font-weight: 800; color: ${pnlColor}; font-family: var(--font-mono);">
-              ${isWin ? '+' : ''}$${(s.netPnl || 0).toFixed(2)}
-            </span>
-            ${s.noTrades ? '<span class="badge badge-no-trades" style="margin-left: 6px; font-size: 0.68rem; padding: 2px 6px;">Día de Paciencia</span>' : `<span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); font-size: 0.68rem; padding: 2px 6px; margin-left: 6px;">${tradesCount} trade(s)</span>`}
+          <div style="font-size: 0.83rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            ${sessImg ? `
+              <img src="${sessImg}" class="chart-thumbnail" style="width: 38px; height: 38px; border-radius: 4px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver gráfico general de la sesión">
+            ` : ''}
+            <div>
+              <span style="font-weight: 700; color: var(--text-main);">${s.account || 'Cuenta'}</span> &bull; 
+              <span style="color: var(--text-muted);">${s.timeSlot || 'Turno'}</span>
+              <span style="margin-left: 8px; font-weight: 800; color: ${pnlColor}; font-family: var(--font-mono);">
+                ${isWin ? '+' : ''}$${(s.netPnl || 0).toFixed(2)}
+              </span>
+              ${s.noTrades ? '<span class="badge badge-no-trades" style="margin-left: 6px; font-size: 0.68rem; padding: 2px 6px;">Día de Paciencia</span>' : `<span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent-primary); font-size: 0.68rem; padding: 2px 6px; margin-left: 6px;">${tradesCount} trade(s)</span>`}
+              ${mediaSrc ? '<span class="badge" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-size: 0.68rem; padding: 2px 6px; margin-left: 4px;"><i class="fa-solid fa-camera"></i> Con Gráfico</span>' : ''}
+            </div>
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
+            ${mediaSrc ? `
+              <button type="button" class="btn btn-secondary btn-xs" onclick="${sessImg ? `openLightbox('${sessImg}')` : `window.open('${sessUrl}', '_blank')`}" title="Ver gráfico general de la sesión" style="display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-camera"></i> Gráfico
+              </button>
+            ` : ''}
             ${isWrongDay ? `
               <button type="button" class="btn btn-warning btn-xs" onclick="quickMoveSessionToToday('${s.id}')" title="Mover esta sesión a hoy (${todayStr})" style="font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
                 <i class="fa-solid fa-arrow-right"></i> Mover a Hoy
               </button>
             ` : ''}
-            <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSessionModal('${s.id}')" title="Editar detalles o cambiar fecha de la sesión" style="display: inline-flex; align-items: center; gap: 4px;">
-              <i class="fa-solid fa-pen-to-square"></i> Editar Fecha
+            <button type="button" class="btn btn-secondary btn-xs" onclick="openEditSessionModal('${s.id}')" title="Editar detalles, notas o gráfico de la sesión" style="display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-pen-to-square"></i> Editar Sesión
             </button>
           </div>
         </div>

@@ -317,6 +317,11 @@ function handleSaveSession(event) {
         news: checkNewsInput ? checkNewsInput.checked : false,
         levels: checkLevelsInput ? checkLevelsInput.checked : false,
         acceptLoss: checkAcceptLossInput ? checkAcceptLossInput.checked : false,
+        sessionChartImage: finalSessionChartImage,
+        sessionChartUrl: finalSessionChartUrl,
+        noTrades: isNoTrades,
+        noTradeReason: isNoTrades ? noTradeReason : null,
+        noTradeNotes: isNoTrades ? sessionNoTradeNotes : null,
         noTradeSession: isNoTrades ? {
           noTrades: true,
           reason: noTradeReason,
@@ -329,6 +334,8 @@ function handleSaveSession(event) {
       noTradeReason: isNoTrades ? noTradeReason : null,
       sessionChartImage: finalSessionChartImage,
       sessionChartUrl: finalSessionChartUrl,
+      chartImage: finalSessionChartImage,
+      chartUrl: finalSessionChartUrl,
       noTradeNotes: isNoTrades ? sessionNoTradeNotes : null,
       folioMaestro: {
         noDo: [

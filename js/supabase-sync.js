@@ -239,26 +239,64 @@ async function loadUserSessionsFromCloud(userId) {
 
     if (error) throw error;
 
-    const cloudSessions = (data || []).map(row => ({
-      id: row.id,
-      date: row.date,
-      timeSlot: row.time_slot,
-      account: row.account,
-      accountsList: row.accounts_list || [],
-      accountRisks: row.account_risks || {},
-      totalReplicatorRisk: parseFloat(row.total_replicator_risk || 0),
-      bias: row.bias,
-      preEmotion: row.pre_emotion,
-      energyScore: row.energy_score,
-      checklist: row.checklist || {},
-      folioMaestro: row.folio_maestro || {},
-      trades: row.trades || [],
-      adherence: row.adherence,
-      disciplineScore: row.discipline_score,
-      mistakes: row.mistakes,
-      takeaway: row.takeaway,
-      netPnl: parseFloat(row.net_pnl || 0)
-    }));
+    const cloudSessions = (data || []).map(row => {
+      const chk = row.checklist || {};
+      const isNoTrades = row.no_trades !== undefined ? !!row.no_trades : (chk.noTrades !== undefined ? !!chk.noTrades : !!chk.noTradeSession?.noTrades);
+      const sessChartImg = row.session_chart_image || chk.sessionChartImage || chk.postSessionChart || chk.noTradeSession?.chartImage || null;
+      const sessChartUrl = row.session_chart_url || chk.sessionChartUrl || chk.postSessionChartUrl || chk.noTradeSession?.chartUrl || null;
+      const noTradeReason = row.no_trade_reason || chk.noTradeReason || chk.noTradeSession?.reason || null;
+      const noTradeNotes = row.no_trade_notes || chk.noTradeNotes || chk.noTradeSession?.notes || null;
+
+      return {
+        id: row.id,
+        date: row.date,
+        timeSlot: row.time_slot,
+        account: row.account,
+        accountsList: row.accounts_list || [],
+        accountRisks: row.account_risks || {},
+        totalReplicatorRisk: parseFloat(row.total_replicator_risk || 0),
+        bias: row.bias,
+        preEmotion: row.pre_emotion,
+        energyScore: row.energy_score,
+        checklist: chk,
+        folioMaestro: row.folio_maestro || {},
+        trades: row.trades || [],
+        adherence: row.adherence,
+        disciplineScore: row.discipline_score,
+        mistakes: row.mistakes,
+        takeaway: row.takeaway,
+        netPnl: parseFloat(row.net_pnl || 0),
+        noTrades: isNoTrades,
+        noTradeReason: noTradeReason,
+        noTradeNotes: noTradeNotes,
+        sessionChartImage: sessChartImg,
+        sessionChartUrl: sessChartUrl,
+        chartImage: sessChartImg,
+        chartUrl: sessChartUrl
+      };
+    });
+
+    // Preservar en cloudSessions los campos de capturas que ya estuvieran en memoria o caché local si la nube aún no los tenía
+    const existingMap = new Map((state.sessions || []).map(s => [s.id, s]));
+    cloudSessions.forEach(cs => {
+      const local = existingMap.get(cs.id);
+      if (local) {
+        const localImg = local.sessionChartImage || local.chartImage || local.checklist?.sessionChartImage;
+        const localUrl = local.sessionChartUrl || local.chartUrl || local.checklist?.sessionChartUrl;
+        if (!cs.sessionChartImage && localImg) {
+          cs.sessionChartImage = localImg;
+          cs.chartImage = localImg;
+          if (!cs.checklist) cs.checklist = {};
+          cs.checklist.sessionChartImage = localImg;
+        }
+        if (!cs.sessionChartUrl && localUrl) {
+          cs.sessionChartUrl = localUrl;
+          cs.chartUrl = localUrl;
+          if (!cs.checklist) cs.checklist = {};
+          cs.checklist.sessionChartUrl = localUrl;
+        }
+      }
+    });
 
     // Verificar si hay sesiones locales previas para ofrecer migración
     const localRaw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -287,6 +325,31 @@ async function loadUserSessionsFromCloud(userId) {
 async function saveSessionToCloud(session) {
   if (!supabaseClient || !state.currentUser) return;
   try {
+    const chartImg = session.sessionChartImage || session.chartImage || session.checklist?.sessionChartImage || session.checklist?.noTradeSession?.chartImage || null;
+    const chartUrl = session.sessionChartUrl || session.chartUrl || session.checklist?.sessionChartUrl || session.checklist?.noTradeSession?.chartUrl || null;
+    const isNoTrades = !!(session.noTrades || session.checklist?.noTradeSession?.noTrades);
+    const noTradeReason = session.noTradeReason || session.checklist?.noTradeSession?.reason || session.checklist?.noTradeReason || null;
+    const noTradeNotes = session.noTradeNotes || session.checklist?.noTradeSession?.notes || session.checklist?.noTradeNotes || null;
+
+    const checklistData = {
+      ...(session.checklist || {}),
+      sessionChartImage: chartImg,
+      sessionChartUrl: chartUrl,
+      noTrades: isNoTrades,
+      noTradeReason: noTradeReason,
+      noTradeNotes: noTradeNotes
+    };
+
+    if (isNoTrades) {
+      checklistData.noTradeSession = {
+        noTrades: true,
+        reason: noTradeReason || 'Mercado en Consolidación / Rango sucio',
+        chartImage: chartImg,
+        chartUrl: chartUrl,
+        notes: noTradeNotes || ''
+      };
+    }
+
     const row = {
       id: session.id,
       user_id: state.currentUser.id,
@@ -299,7 +362,7 @@ async function saveSessionToCloud(session) {
       bias: session.bias,
       pre_emotion: session.preEmotion,
       energy_score: session.energyScore || 8,
-      checklist: session.checklist || {},
+      checklist: checklistData,
       folio_maestro: session.folioMaestro || {},
       trades: session.trades || [],
       adherence: session.adherence,
