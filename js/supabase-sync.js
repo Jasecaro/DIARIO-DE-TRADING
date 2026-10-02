@@ -322,57 +322,60 @@ async function loadUserSessionsFromCloud(userId) {
   }
 }
 
+function mapSessionToDbRow(session, userId) {
+  const chartImg = session.sessionChartImage || session.chartImage || session.checklist?.sessionChartImage || session.checklist?.noTradeSession?.chartImage || null;
+  const chartUrl = session.sessionChartUrl || session.chartUrl || session.checklist?.sessionChartUrl || session.checklist?.noTradeSession?.chartUrl || null;
+  const isNoTrades = !!(session.noTrades || session.checklist?.noTradeSession?.noTrades);
+  const noTradeReason = session.noTradeReason || session.checklist?.noTradeSession?.reason || session.checklist?.noTradeReason || null;
+  const noTradeNotes = session.noTradeNotes || session.checklist?.noTradeSession?.notes || session.checklist?.noTradeNotes || null;
+
+  const checklistData = {
+    ...(session.checklist || {}),
+    sessionChartImage: chartImg,
+    sessionChartUrl: chartUrl,
+    noTrades: isNoTrades,
+    noTradeReason: noTradeReason,
+    noTradeNotes: noTradeNotes
+  };
+
+  if (isNoTrades) {
+    checklistData.noTradeSession = {
+      noTrades: true,
+      reason: noTradeReason || 'Mercado en Consolidación / Rango sucio',
+      chartImage: chartImg,
+      chartUrl: chartUrl,
+      notes: noTradeNotes || ''
+    };
+  }
+
+  return {
+    id: session.id,
+    user_id: userId,
+    date: session.date,
+    time_slot: session.timeSlot,
+    account: session.account,
+    accounts_list: session.accountsList || [],
+    account_risks: session.accountRisks || {},
+    total_replicator_risk: session.totalReplicatorRisk || 0,
+    bias: session.bias,
+    pre_emotion: session.preEmotion,
+    energy_score: session.energyScore || 8,
+    checklist: checklistData,
+    folio_maestro: session.folioMaestro || {},
+    trades: session.trades || [],
+    adherence: session.adherence,
+    discipline_score: session.disciplineScore || 10,
+    mistakes: session.mistakes || '',
+    takeaway: session.takeaway || '',
+    net_pnl: session.netPnl || 0,
+    updated_at: new Date().toISOString()
+  };
+}
+
 async function saveSessionToCloud(session) {
   if (!supabaseClient || !state.currentUser) return;
   try {
-    const chartImg = session.sessionChartImage || session.chartImage || session.checklist?.sessionChartImage || session.checklist?.noTradeSession?.chartImage || null;
-    const chartUrl = session.sessionChartUrl || session.chartUrl || session.checklist?.sessionChartUrl || session.checklist?.noTradeSession?.chartUrl || null;
-    const isNoTrades = !!(session.noTrades || session.checklist?.noTradeSession?.noTrades);
-    const noTradeReason = session.noTradeReason || session.checklist?.noTradeSession?.reason || session.checklist?.noTradeReason || null;
-    const noTradeNotes = session.noTradeNotes || session.checklist?.noTradeSession?.notes || session.checklist?.noTradeNotes || null;
-
-    const checklistData = {
-      ...(session.checklist || {}),
-      sessionChartImage: chartImg,
-      sessionChartUrl: chartUrl,
-      noTrades: isNoTrades,
-      noTradeReason: noTradeReason,
-      noTradeNotes: noTradeNotes
-    };
-
-    if (isNoTrades) {
-      checklistData.noTradeSession = {
-        noTrades: true,
-        reason: noTradeReason || 'Mercado en Consolidación / Rango sucio',
-        chartImage: chartImg,
-        chartUrl: chartUrl,
-        notes: noTradeNotes || ''
-      };
-    }
-
-    const row = {
-      id: session.id,
-      user_id: state.currentUser.id,
-      date: session.date,
-      time_slot: session.timeSlot,
-      account: session.account,
-      accounts_list: session.accountsList || [],
-      account_risks: session.accountRisks || {},
-      total_replicator_risk: session.totalReplicatorRisk || 0,
-      bias: session.bias,
-      pre_emotion: session.preEmotion,
-      energy_score: session.energyScore || 8,
-      checklist: checklistData,
-      folio_maestro: session.folioMaestro || {},
-      trades: session.trades || [],
-      adherence: session.adherence,
-      discipline_score: session.disciplineScore || 10,
-      mistakes: session.mistakes || '',
-      takeaway: session.takeaway || '',
-      net_pnl: session.netPnl || 0,
-      updated_at: new Date().toISOString()
-    };
-
+    const row = mapSessionToDbRow(session, state.currentUser.id);
     const { error } = await supabaseClient.from('trading_sessions').upsert([row]);
     if (error) {
       console.error('Error saving session to Supabase:', error);
@@ -419,28 +422,7 @@ async function syncSessionsArrayToCloud(sessionsArray) {
   const nonDemo = sessionsArray.filter(s => s.id && !String(s.id).startsWith('demo_'));
   if (nonDemo.length === 0) return;
 
-  const rows = nonDemo.map(session => ({
-    id: session.id,
-    user_id: state.currentUser.id,
-    date: session.date,
-    time_slot: session.timeSlot,
-    account: session.account,
-    accounts_list: session.accountsList || [],
-    account_risks: session.accountRisks || {},
-    total_replicator_risk: session.totalReplicatorRisk || 0,
-    bias: session.bias,
-    pre_emotion: session.preEmotion,
-    energy_score: session.energyScore || 8,
-    checklist: session.checklist || {},
-    folio_maestro: session.folioMaestro || {},
-    trades: session.trades || [],
-    adherence: session.adherence,
-    discipline_score: session.disciplineScore || 10,
-    mistakes: session.mistakes || '',
-    takeaway: session.takeaway || '',
-    net_pnl: session.netPnl || 0,
-    updated_at: new Date().toISOString()
-  }));
+  const rows = nonDemo.map(session => mapSessionToDbRow(session, state.currentUser.id));
 
   try {
     const { error } = await supabaseClient.from('trading_sessions').upsert(rows);
@@ -467,28 +449,7 @@ async function confirmCloudMigration() {
 
   showToast(`Sincronizando ${nonDemo.length} sesiones a la nube...`, 'info');
 
-  const rows = nonDemo.map(session => ({
-    id: session.id,
-    user_id: state.currentUser.id,
-    date: session.date,
-    time_slot: session.timeSlot,
-    account: session.account,
-    accounts_list: session.accountsList || [],
-    account_risks: session.accountRisks || {},
-    total_replicator_risk: session.totalReplicatorRisk || 0,
-    bias: session.bias,
-    pre_emotion: session.preEmotion,
-    energy_score: session.energyScore || 8,
-    checklist: session.checklist || {},
-    folio_maestro: session.folioMaestro || {},
-    trades: session.trades || [],
-    adherence: session.adherence,
-    discipline_score: session.disciplineScore || 10,
-    mistakes: session.mistakes || '',
-    takeaway: session.takeaway || '',
-    net_pnl: session.netPnl || 0,
-    updated_at: new Date().toISOString()
-  }));
+  const rows = nonDemo.map(session => mapSessionToDbRow(session, state.currentUser.id));
 
   try {
     const { error } = await supabaseClient.from('trading_sessions').upsert(rows);
