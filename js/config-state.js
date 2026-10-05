@@ -124,6 +124,19 @@ async function hydrateFromIndexedDB() {
           return;
         }
 
+        // Si IndexedDB tiene sesiones que no están en memoria local, agregarlas
+        const localIds = new Set((state.sessions || []).map(s => s.id));
+        let hasNewFromIdb = false;
+        idbSessions.forEach(idbS => {
+          if (idbS && idbS.id && !localIds.has(idbS.id)) {
+            state.sessions.push(idbS);
+            hasNewFromIdb = true;
+          }
+        });
+        if (hasNewFromIdb) {
+          state.sessions.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        }
+
         // Hydrate any cached placeholders back into memory
         const idbMap = new Map(idbSessions.map(s => [s.id, s]));
         let hasRestored = false;
@@ -191,62 +204,56 @@ function loadFromLocalStorage() {
   loadUserAccounts();
 }
 
+
+function stripHeavyBase64(val) {
+  if (!val) return val;
+  if (typeof val === 'string') {
+    if (val.startsWith('data:image/') || (val.length > 500 && !val.startsWith('http') && !val.startsWith('['))) {
+      return '[IDB_STORED]';
+    }
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val.map(item => stripHeavyBase64(item));
+  }
+  if (typeof val === 'object') {
+    const copy = {};
+    for (const k in val) {
+      if (Object.prototype.hasOwnProperty.call(val, k)) {
+        copy[k] = stripHeavyBase64(val[k]);
+      }
+    }
+    return copy;
+  }
+  return val;
+}
+
 function saveToLocalStorage() {
-  // 1. Persist full data (with complete screenshots) to IndexedDB
+  // 1. Persistir siempre sesiones completas (con capturas en alta fidelidad) en IndexedDB (sin límite de 5MB)
   if (Array.isArray(state.sessions)) {
     persistToIndexedDB(state.sessions);
   }
 
-  // 2. Safe LocalStorage persistence with progressive quota tiering
+  // 2. Persistencia en LocalStorage con compresión recursiva blindada
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.sessions));
   } catch (quotaErr) {
-    console.warn('LocalStorage quota reached (5MB limit). Tiering cache storage...', quotaErr);
+    console.warn('LocalStorage saturado (límite 5MB). Aplicando stripping escalonado a caché local...', quotaErr);
     try {
-      // Tier 1: Keep full images only on the most recent session; older ones are safely stored in IndexedDB
+      // Tier 1: Mantener imágenes completas únicamente en la sesión más reciente
       const tieredSessions = state.sessions.map((session, index) => {
-        if (index < 1) return session;
-        return {
-          ...session,
-          sessionChartImage: session.sessionChartImage ? '[IDB_STORED]' : null,
-          checklist: session.checklist ? {
-            ...session.checklist,
-            sessionChartImage: session.checklist.sessionChartImage ? '[IDB_STORED]' : null,
-            noTradeSession: session.checklist.noTradeSession ? {
-              ...session.checklist.noTradeSession,
-              chartImage: session.checklist.noTradeSession.chartImage ? '[IDB_STORED]' : null
-            } : null
-          } : session.checklist,
-          trades: (session.trades || []).map(trade => ({
-            ...trade,
-            chartImage: trade.chartImage ? '[IDB_STORED]' : null
-          }))
-        };
+        if (index === 0) return session;
+        return stripHeavyBase64(session);
       });
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tieredSessions));
     } catch (tier2Err) {
-      console.warn('LocalStorage still constrained. Storing lightweight metadata in localStorage...', tier2Err);
+      console.warn('LocalStorage aún saturado. Guardando metadatos completos y delegando imágenes a IndexedDB...', tier2Err);
       try {
-        // Tier 2: Strip heavy base64 strings from localStorage (IndexedDB retains 100% of screenshots)
-        const metadataSessions = state.sessions.map(session => ({
-          ...session,
-          sessionChartImage: session.sessionChartImage ? '[IDB_STORED]' : null,
-          checklist: session.checklist ? {
-            ...session.checklist,
-            sessionChartImage: session.checklist.sessionChartImage ? '[IDB_STORED]' : null,
-            noTradeSession: session.checklist.noTradeSession ? {
-              ...session.checklist.noTradeSession,
-              chartImage: session.checklist.noTradeSession.chartImage ? '[IDB_STORED]' : null
-            } : null
-          } : session.checklist,
-          trades: (session.trades || []).map(trade => ({
-            ...trade,
-            chartImage: trade.chartImage ? '[IDB_STORED]' : null
-          }))
-        }));
+        // Tier 2: Strip recursivo ultra-liviano de todas las imágenes base64 para garantizar persistencia de metadatos
+        const metadataSessions = state.sessions.map(session => stripHeavyBase64(session));
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(metadataSessions));
       } catch (tier3Err) {
-        console.error('LocalStorage completely full. All data is preserved safely in IndexedDB.', tier3Err);
+        console.error('LocalStorage completamente bloqueado por el navegador. Todos los datos están seguros en IndexedDB.', tier3Err);
       }
     }
   }
