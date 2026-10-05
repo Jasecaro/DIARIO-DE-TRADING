@@ -122,18 +122,22 @@ function goToStep(stepNumber) {
     const stepBtn = document.getElementById(`step-btn-${i}`);
     const stepContent = document.getElementById(`step-content-${i}`);
     
-    if (i === stepNumber) {
-      stepBtn.classList.add('active');
-      stepContent.style.display = 'block';
-    } else {
-      stepBtn.classList.remove('active');
-      stepContent.style.display = 'none';
+    if (stepBtn) {
+      if (i === stepNumber) {
+        stepBtn.classList.add('active');
+      } else {
+        stepBtn.classList.remove('active');
+      }
+
+      if (i < stepNumber) {
+        stepBtn.classList.add('completed');
+      } else {
+        stepBtn.classList.remove('completed');
+      }
     }
 
-    if (i < stepNumber) {
-      stepBtn.classList.add('completed');
-    } else {
-      stepBtn.classList.remove('completed');
+    if (stepContent) {
+      stepContent.style.display = (i === stepNumber) ? 'block' : 'none';
     }
   }
 }

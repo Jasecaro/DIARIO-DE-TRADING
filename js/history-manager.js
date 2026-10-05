@@ -64,8 +64,8 @@ function renderHistory() {
             </div>
             ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
               <div style="display: flex; gap: 1rem; align-items: center; margin: 0.75rem 0;">
-                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
-                  <img src="${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}" class="chart-thumbnail" style="width: 72px; height: 72px; border-radius: 8px;" onclick="openLightbox(this.src)" title="Ver pantallazo del gráfico de la sesión">
+                ${(getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)) ? `
+                  <img src="${getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)}" class="chart-thumbnail" style="width: 72px; height: 72px; border-radius: 8px;" onclick="openLightbox(this.src)" title="Ver pantallazo del gráfico de la sesión">
                 ` : ''}
                 <div style="flex: 1;">
                   ${(s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
@@ -176,8 +176,8 @@ function renderHistory() {
           ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage || s.sessionChartUrl || s.checklist?.noTradeSession?.chartUrl) ? `
             <div style="margin-top: 0.85rem; padding: 0.65rem 0.9rem; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.65rem;">
-                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
-                  <img src="${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}" class="chart-thumbnail" style="width: 50px; height: 50px; border-radius: 6px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver pantallazo general de la sesión">
+                ${(getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)) ? `
+                  <img src="${getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)}" class="chart-thumbnail" style="width: 50px; height: 50px; border-radius: 6px; cursor: pointer; object-fit: cover;" onclick="openLightbox(this.src)" title="Ver pantallazo general de la sesión">
                 ` : ''}
                 <div>
                   <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 5px;">
@@ -187,8 +187,8 @@ function renderHistory() {
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                ${(s.sessionChartImage || s.checklist?.noTradeSession?.chartImage) ? `
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="openLightbox('${s.sessionChartImage || s.checklist?.noTradeSession?.chartImage}')" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                ${(getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)) ? `
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openLightbox('${getValidImageSrc(s.sessionChartImage) || getValidImageSrc(s.checklist?.noTradeSession?.chartImage)}')" style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
                     <i class="fa-solid fa-expand"></i> Ver Pantallazo
                   </button>
                 ` : ''}
@@ -283,7 +283,7 @@ function openEditSessionModal(sessionId) {
           <div style="display: flex; flex-direction: column; gap: 0.4rem;">
             ${s.trades.map((t, idx) => {
               const isMissed = t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS';
-              const pnlText = isMissed ? (t.tradeType === 'MISSED' ? 'Omitido / Se Escapó' : 'Análisis') : `${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}`;
+              const pnlText = isMissed ? (t.tradeType === 'MISSED' ? 'Omitido / Se Escapó' : 'Análisis') : `${(parseFloat(t.pnl) || 0) >= 0 ? '+' : ''}${(parseFloat(t.pnl) || 0).toFixed(2)}`;
               const dirBadge = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
               return `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.8rem;">

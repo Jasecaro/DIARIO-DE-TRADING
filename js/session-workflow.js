@@ -14,9 +14,13 @@ function toggleNoTradesMode(enable) {
 
     // Reset draft trades if any
     state.currentDraftTrades = [];
-    document.getElementById('current-session-pnl').innerText = '$0.00';
-    document.getElementById('current-session-pnl').style.color = 'var(--accent-primary)';
-    document.getElementById('current-session-count').innerText = '0';
+    const pnlEl = document.getElementById('current-session-pnl');
+    if (pnlEl) {
+      pnlEl.innerText = '$0.00';
+      pnlEl.style.color = 'var(--accent-primary)';
+    }
+    const countEl = document.getElementById('current-session-count');
+    if (countEl) countEl.innerText = '0';
 
     // Auto set adherence and discipline in Phase 3
     const adherenceEl = document.getElementById('session-adherence');
@@ -33,7 +37,9 @@ function toggleNoTradesMode(enable) {
     if (noTradesCard) noTradesCard.style.display = 'none';
     if (tradesContainer) tradesContainer.style.display = 'block';
     if (btnToggle) btnToggle.classList.remove('active');
-    renderDraftTradesTable();
+    if (typeof renderDraftTradesTable === 'function') {
+      renderDraftTradesTable();
+    }
   }
 }
 
@@ -60,7 +66,7 @@ function processSessionImageFile(file) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      const maxDim = 1600;
+      const maxDim = 1280;
       let width = img.width;
       let height = img.height;
 
@@ -80,9 +86,9 @@ function processSessionImageFile(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
       setSessionChartPreview(compressedBase64);
-      showToast('Gráfico de la sesión cargado y optimizado', 'success');
+      showToast('Gráfico de la sesión optimizado y listo', 'success');
     };
     img.src = e.target.result;
   };
@@ -132,7 +138,7 @@ function processPostSessionImageFile(file) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      const maxDim = 1600;
+      const maxDim = 1280;
       let width = img.width;
       let height = img.height;
 
@@ -152,9 +158,9 @@ function processPostSessionImageFile(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
       setPostSessionChartPreview(compressedBase64);
-      showToast('Pantallazo general de la sesión cargado y optimizado', 'success');
+      showToast('Pantallazo general optimizado y adjunto', 'success');
     };
     img.src = e.target.result;
   };
@@ -239,11 +245,14 @@ document.addEventListener('paste', (event) => {
 
   if (!isTradeModalOpen && !(isStep2Open && isNoTradesActive) && !isStep3Open) return;
 
-  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+  const items = (event.clipboardData || event.originalEvent.clipboardData)?.items;
+  if (!items) return;
+
   for (let index in items) {
     const item = items[index];
-    if (item.kind === 'file' && item.type.startsWith('image/')) {
+    if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
       const blob = item.getAsFile();
+      if (!blob) continue;
       if (isTradeModalOpen) {
         processImageFile(blob);
         showToast('¡Pantallazo del trade pegado desde el portapapeles!', 'success');
@@ -259,13 +268,15 @@ document.addEventListener('paste', (event) => {
   }
 });
 
-// Lightbox Modal Handling
-
+// ==========================================================================
+// GUARDAR SESIÓN DE TRADING
+// ==========================================================================
 function handleSaveSession(event) {
   if (event) {
     event.preventDefault();
   }
 
+  let session = null;
   try {
     let totalRiskSum = 0;
     if (state.currentSessionAccounts && Array.isArray(state.currentSessionAccounts)) {
@@ -300,9 +311,9 @@ function handleSaveSession(event) {
     const finalSessionChartImage = postSessionChartImg || sessionChartImg || null;
     const finalSessionChartUrl = postSessionChartUrl || sessionChartUrl || null;
 
-    const session = {
+    session = {
       id: 'session_' + Date.now(),
-      date: dateInput?.value || new Date().toISOString().split('T')[0],
+      date: dateInput?.value || (typeof getLocalDateString === 'function' ? getLocalDateString() : new Date().toISOString().split('T')[0]),
       timeSlot: timeSlotInput?.value || 'New York Open (8:00 AM - 11:30 AM)',
       account: (state.currentSessionAccounts && state.currentSessionAccounts.length > 0)
         ? state.currentSessionAccounts.join(', ')
@@ -317,6 +328,8 @@ function handleSaveSession(event) {
         news: checkNewsInput ? checkNewsInput.checked : false,
         levels: checkLevelsInput ? checkLevelsInput.checked : false,
         acceptLoss: checkAcceptLossInput ? checkAcceptLossInput.checked : false,
+        sessionChartImage: finalSessionChartImage,
+        sessionChartUrl: finalSessionChartUrl,
         noTradeSession: isNoTrades ? {
           noTrades: true,
           reason: noTradeReason,
@@ -361,15 +374,18 @@ function handleSaveSession(event) {
       disciplineScore: parseInt(disciplineInput?.value) || (isNoTrades ? 10 : 9),
       mistakes: isNoTrades ? (mistakesInput?.value || 'Ninguno (Plan Seguido)') : (mistakesInput?.value || ''),
       takeaway: takeawayInput?.value || (isNoTrades ? (sessionNoTradeNotes || 'Día de Paciencia y preservación de capital. Sin operaciones ejecutadas según el plan.') : ''),
-      netPnl: isNoTrades ? 0 : (state.currentDraftTrades ? state.currentDraftTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS').reduce((sum, t) => sum + (t.pnl || 0), 0) : 0)
+      netPnl: isNoTrades ? 0 : (state.currentDraftTrades ? state.currentDraftTrades.filter(t => t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS').reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0) : 0)
     };
 
     if (!state.sessions) state.sessions = [];
-    state.sessions.unshift(session); // Add to top
+    // Evitar duplicados si hubo un intento anterior fallido en memoria
+    state.sessions = state.sessions.filter(s => s && s.id !== session.id);
+    state.sessions.unshift(session); // Agregar al inicio
+
     saveToLocalStorage();
 
     // Sincronizar con Supabase si está logueado
-    if (state.currentUser && supabaseClient) {
+    if (state.currentUser && supabaseClient && typeof saveSessionToCloud === 'function') {
       saveSessionToCloud(session);
     }
 
@@ -383,7 +399,7 @@ function handleSaveSession(event) {
     });
 
     // Reset mistakes chips
-    document.querySelectorAll('#mistakes-chips .chip').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('#mistakes-chips .chip').forEach(c => c.classList.remove('selected', 'selected-profit', 'selected-loss'));
     if (mistakesInput) mistakesInput.value = '';
 
     // Reset No Trades State & Draft & Post-session chart
@@ -391,21 +407,31 @@ function handleSaveSession(event) {
     removePostSessionChartPreview();
     toggleNoTradesMode(false);
     state.currentDraftTrades = [];
-    renderDraftTradesTable();
-    goToStep(1);
+    if (typeof renderDraftTradesTable === 'function') {
+      renderDraftTradesTable();
+    }
+    if (typeof goToStep === 'function') {
+      goToStep(1);
+    }
 
     // Reset date input to current local date
     const dateInputEl = document.getElementById('session-date');
-    if (dateInputEl) dateInputEl.value = getLocalDateString();
+    if (dateInputEl && typeof getLocalDateString === 'function') {
+      dateInputEl.value = getLocalDateString();
+    }
 
     showToast('¡Sesión de trading guardada con éxito!', 'success');
-    switchTab('dashboard');
+
+    // Navegación aislada al dashboard: Un error de renderizado en gráficos jamás debe revertir la sesión guardada
+    try {
+      if (typeof switchTab === 'function') {
+        switchTab('dashboard');
+      }
+    } catch (navErr) {
+      console.warn('Sesión guardada con éxito en caché y nube. Aviso al renderizar Dashboard:', navErr);
+    }
   } catch (err) {
     console.error('Error saving trading session:', err);
-    showToast('Ocurrió un error al guardar la sesión.', 'danger');
+    showToast(`No se pudo guardar la sesión: ${err.message || 'Error inesperado'}`, 'danger');
   }
 }
-
-// ==========================================================================
-// MULTI-CUENTA DE FONDEO: GESTIÓN Y FILTROS
-// ==========================================================================

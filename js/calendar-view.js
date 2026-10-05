@@ -50,7 +50,7 @@ function renderDashboardCalendar(filteredSessions) {
     (s.trades || []).forEach(t => {
       daysMap[dStr].trades.push(t);
       if (t.tradeType !== 'MISSED' && t.tradeType !== 'ANALYSIS') {
-        daysMap[dStr].netPnl += (t.pnl || 0);
+        daysMap[dStr].netPnl += (parseFloat(t.pnl) || 0);
       }
       if (t.chartImage || t.chartUrl || t.notes) {
         daysMap[dStr].hasNotesOrMedia = true;
@@ -115,7 +115,7 @@ function renderDashboardCalendar(filteredSessions) {
 
       if (hasExecuted) {
         totalMonthTrades += executedTrades.length;
-        monthNetPnl += dayData.netPnl;
+        monthNetPnl += (parseFloat(dayData.netPnl) || 0);
 
         if (dayData.netPnl > 0) {
           greenDays++;
@@ -213,7 +213,7 @@ function renderDashboardCalendar(filteredSessions) {
   // Update month summary badges
   const pnlEl = document.getElementById('cal-month-pnl');
   if (pnlEl) {
-    pnlEl.innerText = `${monthNetPnl >= 0 ? '+' : ''}$${monthNetPnl.toFixed(2)}`;
+    pnlEl.innerText = `${monthNetPnl >= 0 ? '+' : ''}${parseFloat(monthNetPnl || 0).toFixed(2)}`;
     pnlEl.className = `cal-stat-val ${monthNetPnl >= 0 ? 'profit' : 'loss'}`;
   }
 
@@ -325,7 +325,7 @@ function openCalendarDayDetails(dateStr) {
 
     patienceSessions.forEach(ps => {
       const reason = ps.noTradeReason || ps.checklist?.noTradeSession?.reason || (ps.mistakes && ps.mistakes.includes('Paciencia') ? ps.mistakes : (ps.takeaway || 'Día de Paciencia • Sin operaciones ejecutadas según el plan'));
-      const chartImg = ps.chartImage || ps.sessionChartImage || ps.checklist?.noTradeSession?.chartImage;
+      const chartImg = getValidImageSrc(ps.chartImage) || getValidImageSrc(ps.sessionChartImage) || getValidImageSrc(ps.checklist?.noTradeSession?.chartImage);
       const chartHtml = chartImg ? `
         <div style="margin-top: 0.75rem;">
           <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Captura del Gráfico:</span><br>

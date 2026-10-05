@@ -435,7 +435,7 @@ function processImageFile(file) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      const maxDim = 1600;
+      const maxDim = 1280;
       let width = img.width;
       let height = img.height;
 
@@ -455,7 +455,7 @@ function processImageFile(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
       setImagePreview(compressedBase64);
       showToast('Pantallazo cargado y optimizado correctamente', 'success');
     };

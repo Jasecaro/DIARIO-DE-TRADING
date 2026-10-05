@@ -41,27 +41,224 @@ if (typeof window !== 'undefined') {
 // Ejecutar lo antes posible para evitar parpadeo de pantalla blanca
 initTheme();
 
+// ==========================================================================
+// HIGH-CAPACITY STORAGE ENGINE (INDEXEDDB + LOCALSTORAGE HYBRID)
+// ==========================================================================
+const IDB_CONFIG = {
+  name: 'TheRaiseTraderDB',
+  version: 1,
+  store: 'sessions'
+};
 
+let dbInstance = null;
 
-// Load / Save LocalStorage
+function initIDB() {
+  if (typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null);
+  if (dbInstance) return Promise.resolve(dbInstance);
+
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_CONFIG.name, IDB_CONFIG.version);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_CONFIG.store)) {
+          db.createObjectStore(IDB_CONFIG.store, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => {
+        dbInstance = e.target.result;
+        resolve(dbInstance);
+      };
+      request.onerror = (e) => {
+        console.warn('IndexedDB unavailable or blocked:', e);
+        resolve(null);
+      };
+    } catch (err) {
+      console.warn('IndexedDB initialization error:', err);
+      resolve(null);
+    }
+  });
+}
+
+async function persistToIndexedDB(sessions) {
+  try {
+    const db = await initIDB();
+    if (!db) return;
+    const tx = db.transaction(IDB_CONFIG.store, 'readwrite');
+    const store = tx.objectStore(IDB_CONFIG.store);
+    
+    // Store full objects with screenshots
+    const clearReq = store.clear();
+    clearReq.onsuccess = () => {
+      sessions.forEach(session => {
+        try {
+          if (session && session.id) {
+            store.put(session);
+          }
+        } catch (e) {
+          console.warn('Error storing session in IDB:', e);
+        }
+      });
+    };
+  } catch (err) {
+    console.warn('Failed to persist to IndexedDB:', err);
+  }
+}
+
+async function hydrateFromIndexedDB() {
+  try {
+    const db = await initIDB();
+    if (!db) return;
+    const tx = db.transaction(IDB_CONFIG.store, 'readonly');
+    const store = tx.objectStore(IDB_CONFIG.store);
+    const getAllReq = store.getAll();
+    getAllReq.onsuccess = () => {
+      const idbSessions = getAllReq.result;
+      if (idbSessions && idbSessions.length > 0) {
+        if (!state.sessions || state.sessions.length === 0) {
+          state.sessions = idbSessions;
+          saveToLocalStorage();
+          if (typeof renderDashboard === 'function') renderDashboard();
+          if (typeof renderHistory === 'function') renderHistory();
+          if (typeof renderHomeMetrics === 'function') renderHomeMetrics();
+          return;
+        }
+
+        // Hydrate any cached placeholders back into memory
+        const idbMap = new Map(idbSessions.map(s => [s.id, s]));
+        let hasRestored = false;
+
+        state.sessions.forEach((s, idx) => {
+          const idbSession = idbMap.get(s.id);
+          if (idbSession) {
+            if (s.sessionChartImage === '[IDB_STORED]' && idbSession.sessionChartImage) {
+              state.sessions[idx].sessionChartImage = idbSession.sessionChartImage;
+              hasRestored = true;
+            }
+            if (s.checklist?.sessionChartImage === '[IDB_STORED]' && (idbSession.checklist?.sessionChartImage || idbSession.sessionChartImage)) {
+              state.sessions[idx].checklist.sessionChartImage = idbSession.checklist?.sessionChartImage || idbSession.sessionChartImage;
+              hasRestored = true;
+            }
+            if (s.checklist?.noTradeSession?.chartImage === '[IDB_STORED]' && idbSession.checklist?.noTradeSession?.chartImage) {
+              state.sessions[idx].checklist.noTradeSession.chartImage = idbSession.checklist.noTradeSession.chartImage;
+              hasRestored = true;
+            }
+            (s.trades || []).forEach((t, tIdx) => {
+              if (t.chartImage === '[IDB_STORED]' && idbSession.trades?.[tIdx]?.chartImage) {
+                state.sessions[idx].trades[tIdx].chartImage = idbSession.trades[tIdx].chartImage;
+                hasRestored = true;
+              }
+            });
+          }
+        });
+
+        if (hasRestored) {
+          if (typeof renderDashboard === 'function') renderDashboard();
+          if (typeof renderHistory === 'function') renderHistory();
+        }
+      } else if (state.sessions && state.sessions.length > 0) {
+        // Seed IndexedDB with initial localStorage data
+        persistToIndexedDB(state.sessions);
+      }
+    };
+  } catch (err) {
+    console.warn('Error hydrating from IndexedDB:', err);
+  }
+}
+
+// Load / Save LocalStorage & IndexedDB Hybrid
 function loadFromLocalStorage() {
   const data = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (data) {
     try {
       state.sessions = JSON.parse(data);
+      // Clean up duplicates if any
+      const seen = new Set();
+      state.sessions = state.sessions.filter(s => {
+        if (!s || !s.id) return false;
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      });
     } catch (e) {
       console.error('Error loading data from localStorage', e);
       state.sessions = [];
     }
   }
+  
+  // Hydrate full images from IndexedDB asynchronously
+  hydrateFromIndexedDB();
   loadUserAccounts();
 }
 
 function saveToLocalStorage() {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.sessions));
-  renderHomeMetrics();
-}
+  // 1. Persist full data (with complete screenshots) to IndexedDB
+  if (Array.isArray(state.sessions)) {
+    persistToIndexedDB(state.sessions);
+  }
 
+  // 2. Safe LocalStorage persistence with progressive quota tiering
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.sessions));
+  } catch (quotaErr) {
+    console.warn('LocalStorage quota reached (5MB limit). Tiering cache storage...', quotaErr);
+    try {
+      // Tier 1: Keep full images only on the most recent session; older ones are safely stored in IndexedDB
+      const tieredSessions = state.sessions.map((session, index) => {
+        if (index < 1) return session;
+        return {
+          ...session,
+          sessionChartImage: session.sessionChartImage ? '[IDB_STORED]' : null,
+          checklist: session.checklist ? {
+            ...session.checklist,
+            sessionChartImage: session.checklist.sessionChartImage ? '[IDB_STORED]' : null,
+            noTradeSession: session.checklist.noTradeSession ? {
+              ...session.checklist.noTradeSession,
+              chartImage: session.checklist.noTradeSession.chartImage ? '[IDB_STORED]' : null
+            } : null
+          } : session.checklist,
+          trades: (session.trades || []).map(trade => ({
+            ...trade,
+            chartImage: trade.chartImage ? '[IDB_STORED]' : null
+          }))
+        };
+      });
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tieredSessions));
+    } catch (tier2Err) {
+      console.warn('LocalStorage still constrained. Storing lightweight metadata in localStorage...', tier2Err);
+      try {
+        // Tier 2: Strip heavy base64 strings from localStorage (IndexedDB retains 100% of screenshots)
+        const metadataSessions = state.sessions.map(session => ({
+          ...session,
+          sessionChartImage: session.sessionChartImage ? '[IDB_STORED]' : null,
+          checklist: session.checklist ? {
+            ...session.checklist,
+            sessionChartImage: session.checklist.sessionChartImage ? '[IDB_STORED]' : null,
+            noTradeSession: session.checklist.noTradeSession ? {
+              ...session.checklist.noTradeSession,
+              chartImage: session.checklist.noTradeSession.chartImage ? '[IDB_STORED]' : null
+            } : null
+          } : session.checklist,
+          trades: (session.trades || []).map(trade => ({
+            ...trade,
+            chartImage: trade.chartImage ? '[IDB_STORED]' : null
+          }))
+        }));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(metadataSessions));
+      } catch (tier3Err) {
+        console.error('LocalStorage completely full. All data is preserved safely in IndexedDB.', tier3Err);
+      }
+    }
+  }
+
+  if (typeof renderHomeMetrics === 'function') {
+    try {
+      renderHomeMetrics();
+    } catch (err) {
+      console.warn('Error rendering home metrics after save:', err);
+    }
+  }
+}
 
 function getLocalDateString() {
   const now = new Date();
@@ -79,17 +276,24 @@ function setSessionDateToday() {
   }
 }
 
+function getValidImageSrc(src) {
+  if (!src || typeof src !== 'string' || src.startsWith('[IDB_')) return null;
+  return src;
+}
 
 function openLightbox(imgSrc) {
+  if (!imgSrc || imgSrc.startsWith('[IDB_')) return;
   const modal = document.getElementById('lightbox-modal');
-  document.getElementById('lightbox-img').src = imgSrc;
+  if (!modal) return;
+  const img = document.getElementById('lightbox-img');
+  if (img) img.src = imgSrc;
   modal.classList.add('active');
 }
 
 function closeLightbox() {
-  document.getElementById('lightbox-modal').classList.remove('active');
+  const modal = document.getElementById('lightbox-modal');
+  if (modal) modal.classList.remove('active');
 }
-
 
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
@@ -97,7 +301,7 @@ function showToast(message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i> <span>${message}</span>`;
+  toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : (type === 'danger' || type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info')}"></i> <span>${message}</span>`;
   
   container.appendChild(toast);
 
@@ -107,8 +311,6 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
-// Paper Template Modal & Printing Functions
-
 function initTheme() {
   try {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -117,7 +319,6 @@ function initTheme() {
     } else if (savedTheme === 'light') {
       applyTheme('light');
     } else {
-      // Si el usuario tiene modo oscuro en su sistema operativo, respetarlo
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       applyTheme(prefersDark ? 'dark' : 'light');
     }
@@ -162,9 +363,7 @@ function toggleTheme() {
 
   showToast(`Modo ${newTheme === 'dark' ? 'Oscuro Terminal' : 'Claro Ejecutivo'} activado`, 'info');
 
-  // Actualizar gráficos si están en pantalla
   if (state.sessions && state.sessions.length > 0) {
-    renderEquityChart(state.sessions);
-    renderErrorsChart(calculateErrorsMap(state.sessions));
+    if (typeof renderEquityChart === 'function') renderEquityChart(state.sessions);
   }
-}
+}

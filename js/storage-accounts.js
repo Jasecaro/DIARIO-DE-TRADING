@@ -741,9 +741,11 @@ function renderAccountsComparisonTable() {
       if (!hasAccount) return;
 
       (s.trades || []).forEach(t => {
+        if (t.tradeType === 'MISSED' || t.tradeType === 'ANALYSIS') return;
         if (!t.account || t.account === 'REPLICATED' || t.account === acc) {
+          const pnlVal = parseFloat(t.pnl) || 0;
           accTrades++;
-          accPnl += (t.pnl || 0);
+          accPnl += pnlVal;
           accRunningCapital += (t.pnl || 0);
           if (accRunningCapital > accPeakCapital) accPeakCapital = accRunningCapital;
           const dd = accPeakCapital - accRunningCapital;

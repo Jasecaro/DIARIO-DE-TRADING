@@ -162,8 +162,8 @@ function renderRecentSessionsTable(recentSessions) {
         <td>${s.account}</td>
         <td><span class="chip" style="font-size: 0.75rem;">${s.preEmotion}</span></td>
         <td>${tradesText}</td>
-        <td><span class="badge ${pnlClass}">$${s.netPnl.toFixed(2)}</span></td>
-        <td><strong>${s.disciplineScore}/10</strong></td>
+        <td><span class="badge ${pnlClass}">${parseFloat(s.netPnl || 0).toFixed(2)}</span></td>
+        <td><strong>${s.disciplineScore || 10}/10</strong></td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="exportSingleSessionReport('${s.id}')">
             <i class="fa-solid fa-brain"></i> Copy MD
