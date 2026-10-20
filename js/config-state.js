@@ -17,6 +17,7 @@ let state = {
   equityChart: null,
   errorsChart: null,
   scatterChart: null,
+  dashboardTimezoneMode: 'LOCAL',
   userAccounts: [],
   currentSessionAccounts: [],
   currentSessionAccountRisks: {},

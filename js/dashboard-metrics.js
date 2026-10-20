@@ -335,21 +335,28 @@ function renderDataPatterns(trades, sessions) {
     edges.push(`Entrando con «<strong>${bestEmotion.name}</strong>» ganas <strong>+$${bestEmotion.pnl.toLocaleString('en-US', {maximumFractionDigits: 0})}</strong> en ${bestEmotion.count} trade${bestEmotion.count === 1 ? '' : 's'}.`);
   }
 
-  // 4. Análisis por Horas
+  // 4. Análisis por Horas (Solo trades con hora real registrada)
+  const isNY = state.dashboardTimezoneMode === 'NY';
+  const tzLabel = isNY ? 'Hora NY' : 'Hora Chile';
   const hourStats = {};
   trades.forEach(t => {
-    let hr = '09:00';
-    if (t.time && t.time.includes(':')) {
-      const h = parseInt(t.time.split(':')[0]);
-      if (!isNaN(h)) hr = String(h).padStart(2, '0') + ':00';
+    if (!t.time || typeof t.time !== 'string' || !t.time.includes(':')) return;
+    const parts = t.time.split(':');
+    let h = parseInt(parts[0], 10);
+    if (isNaN(h)) return;
+
+    if (isNY) {
+      // De Chile (UTC-3) a NY (UTC-4) suele haber 1 hora de diferencia
+      h = (h - 1 + 24) % 24;
     }
-    if (!hourStats[hr]) hourStats[hr] = { count: 0, pnl: 0, wins: 0 };
+
+    const hr = String(h).padStart(2, '0') + ':00';
+    if (!hourStats[hr]) hourStats[hr] = { count: 0, pnl: 0, wins: 0, hour: hr };
     hourStats[hr].count++;
     hourStats[hr].pnl += t.pnl;
     if (t.pnl > 0) hourStats[hr].wins++;
   });
-  const hoursArr = Object.entries(hourStats).map(([hour, s]) => ({
-    hour,
+  const hoursArr = Object.values(hourStats).map(s => ({
     ...s,
     wr: Math.round((s.wins / s.count) * 100)
   }));
@@ -357,12 +364,12 @@ function renderDataPatterns(trades, sessions) {
   const bestHour = [...hoursArr].sort((a, b) => b.pnl - a.pnl)[0];
 
   if (worstHour && worstHour.pnl < 0) {
-    const nextH = parseInt(worstHour.hour) + 1;
+    const nextH = (parseInt(worstHour.hour, 10) + 1) % 24;
     const endHr = String(nextH).padStart(2, '0') + ':00';
-    leaks.push(`De <strong>${worstHour.hour} a ${endHr}</strong> pierdes <strong>$${Math.abs(worstHour.pnl).toLocaleString('en-US', {maximumFractionDigits: 0})}</strong> en ${worstHour.count} trades (win rate ${worstHour.wr}%).`);
+    leaks.push(`De <strong>${worstHour.hour} a ${endHr} (${tzLabel})</strong> pierdes <strong>$${Math.abs(worstHour.pnl).toLocaleString('en-US', {maximumFractionDigits: 0})}</strong> en ${worstHour.count} trades (win rate ${worstHour.wr}%).`);
   }
   if (bestHour && bestHour.pnl > 0) {
-    edges.push(`De <strong>${bestHour.hour}</strong> ganas <strong>+$${bestHour.pnl.toLocaleString('en-US', {maximumFractionDigits: 0})}</strong> en ${bestHour.count} trades (win rate ${bestHour.wr}%).`);
+    edges.push(`De <strong>${bestHour.hour} (${tzLabel})</strong> ganas <strong>+$${bestHour.pnl.toLocaleString('en-US', {maximumFractionDigits: 0})}</strong> en ${bestHour.count} trades (win rate ${bestHour.wr}%).`);
   }
 
   // 5. Playbook / Setup estrella
@@ -586,19 +593,51 @@ function renderAnalyticsBreakdowns(trades, sessions) {
     }).join('');
   }
 
-  // 1. Por Hora de Entrada (08:00, 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, etc.)
+  // Render timezone toggle pills
+  const tzContainer = document.getElementById('dash-tz-pills');
+  const isNY = state.dashboardTimezoneMode === 'NY';
+  if (tzContainer) {
+    tzContainer.innerHTML = `
+      <div style="display: inline-flex; background: rgba(148,163,184,0.12); padding: 2px; border-radius: 6px; gap: 2px;">
+        <button type="button" class="btn btn-xs ${!isNY ? 'btn-primary' : 'btn-secondary'}" onclick="setDashboardTimezone('LOCAL')" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 4px; ${!isNY ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2);' : 'background: transparent; border: none;'}">🇨🇱 Chile</button>
+        <button type="button" class="btn btn-xs ${isNY ? 'btn-primary' : 'btn-secondary'}" onclick="setDashboardTimezone('NY')" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 4px; ${isNY ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2);' : 'background: transparent; border: none;'}">🇺🇸 NY</button>
+      </div>
+    `;
+  }
+
+  // 1. Por Hora de Entrada (Solo con horas reales registradas)
   const hoursMap = {};
+  let unrecordedCount = 0;
+  let unrecordedPnl = 0;
+
   trades.forEach(t => {
-    let hr = '09:00';
-    if (t.time && t.time.includes(':')) {
-      const h = parseInt(t.time.split(':')[0]);
-      if (!isNaN(h)) hr = String(h).padStart(2, '0') + ':00';
+    if (!t.time || typeof t.time !== 'string' || !t.time.includes(':')) {
+      unrecordedCount++;
+      unrecordedPnl += t.pnl;
+      return;
     }
+    const parts = t.time.split(':');
+    let h = parseInt(parts[0], 10);
+    if (isNaN(h)) {
+      unrecordedCount++;
+      unrecordedPnl += t.pnl;
+      return;
+    }
+
+    if (isNY) {
+      h = (h - 1 + 24) % 24;
+    }
+
+    const hr = String(h).padStart(2, '0') + ':00';
     if (!hoursMap[hr]) hoursMap[hr] = { label: hr, pnl: 0, count: 0 };
     hoursMap[hr].pnl += t.pnl;
     hoursMap[hr].count++;
   });
+
   const hoursList = Object.values(hoursMap).sort((a, b) => a.label.localeCompare(b.label));
+  if (unrecordedCount > 0 && hoursList.length > 0) {
+    hoursList.push({ label: 'Sin hora', pnl: unrecordedPnl, count: unrecordedCount });
+  }
   renderList('dash-breakdown-hours', hoursList);
 
   // 2. Por Día de la Semana
@@ -900,5 +939,15 @@ function updateHomeCloudCard() {
       actionBtn.onclick = () => openAuthModal('login');
     }
   }
+}
+
+// Selector de Zona Horaria (Chile Local vs Nueva York ET)
+function setDashboardTimezone(mode) {
+  state.dashboardTimezoneMode = (mode === 'NY') ? 'NY' : 'LOCAL';
+  renderDashboard();
+}
+
+if (typeof window !== 'undefined') {
+  window.setDashboardTimezone = setDashboardTimezone;
 }
 
