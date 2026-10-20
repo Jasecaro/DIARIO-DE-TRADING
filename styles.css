@@ -5338,13 +5338,19 @@ input[type="range"] {
 }
 
 .breakdown-label {
-  width: 95px;
+  min-width: 90px;
+  max-width: 50%;
   flex-shrink: 0;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+}
+
+.breakdown-card.span-2 .breakdown-label {
+  min-width: 140px;
+  max-width: 60%;
 }
 
 .breakdown-bar-track {

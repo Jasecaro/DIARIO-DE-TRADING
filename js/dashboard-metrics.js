@@ -707,6 +707,8 @@ function renderAnalyticsBreakdowns(trades, sessions) {
   // 7. Por Estado al Entrar (Emoción)
   const emotionEmojis = {
     'Calma': '🤗',
+    'Calmo': '🎯',
+    'Calmado': '🎯',
     'Confianza': '😎',
     'FOMO': '⚡',
     'Revancha': '🔥',
@@ -715,13 +717,24 @@ function renderAnalyticsBreakdowns(trades, sessions) {
     'Ansiedad': '😰',
     'Fatiga': '🔋',
     'Cansancio': '🔋',
+    'Cansado': '🥱',
+    'Cauteloso': '🛡️',
+    'Alerta': '🛡️',
     'Paciencia': '🛡️'
   };
   const emotionMap = {};
   trades.forEach(t => {
-    const emo = t.sessionEmotion || 'Calma';
-    const cleanEmo = emo.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ ]/g, '').trim() || 'Calma';
-    const emoji = emotionEmojis[cleanEmo] || '🎯';
+    const emo = (t.sessionEmotion || 'Calma').trim();
+    // Quitar emojis duplicados si ya venían en el texto
+    const cleanEmo = emo.replace(/^[\p{Emoji}\s\-_/•]+/gu, '').trim() || emo;
+
+    let emoji = '🎯';
+    for (const [key, val] of Object.entries(emotionEmojis)) {
+      if (cleanEmo.toLowerCase().includes(key.toLowerCase())) {
+        emoji = val;
+        break;
+      }
+    }
     const label = `${emoji} ${cleanEmo}`;
     if (!emotionMap[label]) emotionMap[label] = { label: label, pnl: 0, count: 0 };
     emotionMap[label].pnl += t.pnl;
