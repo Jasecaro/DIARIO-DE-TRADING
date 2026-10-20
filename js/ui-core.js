@@ -435,6 +435,40 @@ function initMarketSessionsClock() {
   }
 }
 
+function getMarketTimeInfo(timeZone) {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timeZone,
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false,
+      weekday: 'short'
+    });
+    const parts = formatter.formatToParts(now);
+    const map = {};
+    parts.forEach(p => map[p.type] = p.value);
+    const hour = parseInt(map.hour, 10);
+    const minute = parseInt(map.minute, 10);
+    const weekday = map.weekday;
+    const isWeekend = (weekday === 'Sat' || weekday === 'Sun');
+    const timeDec = hour + (minute / 60);
+    const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    return { hour, minute, timeDec, weekday, isWeekend, timeStr };
+  } catch (e) {
+    const now = new Date();
+    return {
+      hour: now.getUTCHours(),
+      minute: now.getUTCMinutes(),
+      timeDec: now.getUTCHours() + (now.getUTCMinutes() / 60),
+      weekday: 'Mon',
+      isWeekend: false,
+      timeStr: '00:00'
+    };
+  }
+}
+
 function updateMarketSessionsClock() {
   const now = new Date();
   
@@ -444,62 +478,72 @@ function updateMarketSessionsClock() {
     clockEl.innerText = now.toLocaleTimeString('es-ES', { hour12: false });
   }
 
-  // Cálculos en Horario UTC
-  const utcDay = now.getUTCDay(); // 0 = Domingo, 6 = Sábado
-  const utcHours = now.getUTCHours();
-  const utcMinutes = now.getUTCMinutes();
-  const utcTimeDec = utcHours + (utcMinutes / 60);
-
-  const isWeekend = (utcDay === 6 || (utcDay === 0 && utcHours < 22)); // Sábado completo o Domingo antes de sesión asiática
-
-  // 1. Nueva York (NYSE / NASDAQ):
-  // RTH: 14:30 - 21:00 UTC (9:30 AM - 4:00 PM EST)
-  // Pre-market: 12:00 - 14:30 UTC (7:00 AM - 9:30 AM EST)
+  // 1. Nueva York (NYSE / NASDAQ - America/New_York)
+  // RTH: 09:30 - 16:00 | Pre-market: 07:00 - 09:30 | Post: 16:00 - 20:00
+  const ny = getMarketTimeInfo('America/New_York');
   const nyPill = document.getElementById('ticker-ny');
   const nyBadge = document.getElementById('badge-ny');
   if (nyPill && nyBadge) {
-    if (isWeekend) {
+    nyPill.title = `Nueva York: ${ny.timeStr} (RTH: 09:30 - 16:00 ET)`;
+    if (ny.isWeekend) {
       nyPill.className = 'market-ticker-pill closed';
       nyBadge.innerText = 'Cerrado';
-    } else if (utcTimeDec >= 14.5 && utcTimeDec < 21.0) {
+    } else if (ny.timeDec >= 9.5 && ny.timeDec < 16.0) {
       nyPill.className = 'market-ticker-pill open';
       nyBadge.innerText = 'Abierto';
-    } else if (utcTimeDec >= 12.0 && utcTimeDec < 14.5) {
+    } else if (ny.timeDec >= 7.0 && ny.timeDec < 9.5) {
       nyPill.className = 'market-ticker-pill pre-market';
       nyBadge.innerText = 'Pre-Mercado';
+    } else if (ny.timeDec >= 16.0 && ny.timeDec < 20.0) {
+      nyPill.className = 'market-ticker-pill pre-market';
+      nyBadge.innerText = 'After-Hours';
     } else {
       nyPill.className = 'market-ticker-pill closed';
       nyBadge.innerText = 'Cerrado';
     }
   }
 
-  // 2. Londres (LSE):
-  // 08:00 - 16:30 UTC
+  // 2. Londres (LSE - Europe/London)
+  // Regular: 08:00 - 16:30 | Pre-market: 07:00 - 08:00
+  const lon = getMarketTimeInfo('Europe/London');
   const londonPill = document.getElementById('ticker-london');
   const londonBadge = document.getElementById('badge-london');
   if (londonPill && londonBadge) {
-    if (isWeekend) {
+    londonPill.title = `Londres: ${lon.timeStr} (LSE: 08:00 - 16:30 BST/GMT)`;
+    if (lon.isWeekend) {
       londonPill.className = 'market-ticker-pill closed';
       londonBadge.innerText = 'Cerrado';
-    } else if (utcTimeDec >= 8.0 && utcTimeDec < 16.5) {
+    } else if (lon.timeDec >= 8.0 && lon.timeDec < 16.5) {
       londonPill.className = 'market-ticker-pill open';
       londonBadge.innerText = 'Abierto';
+    } else if (lon.timeDec >= 7.0 && lon.timeDec < 8.0) {
+      londonPill.className = 'market-ticker-pill pre-market';
+      londonBadge.innerText = 'Pre-Mercado';
     } else {
       londonPill.className = 'market-ticker-pill closed';
       londonBadge.innerText = 'Cerrado';
     }
   }
 
-  // 3. Tokio / Asia:
-  // 00:00 - 09:00 UTC (o Domingo tarde 22:00+ UTC apertura de Sydney/Asia)
+  // 3. Tokio / Asia (TSE - Asia/Tokyo)
+  // Regular: 09:00 - 11:30 & 12:30 - 15:30 JST
+  const asia = getMarketTimeInfo('Asia/Tokyo');
   const asiaPill = document.getElementById('ticker-asia');
   const asiaBadge = document.getElementById('badge-asia');
   if (asiaPill && asiaBadge) {
-    const isAsiaOpen = (!isWeekend && (utcTimeDec >= 0.0 && utcTimeDec < 9.0)) || 
-                       (utcDay === 0 && utcTimeDec >= 22.0);
-    if (isAsiaOpen) {
+    asiaPill.title = `Tokio: ${asia.timeStr} (TSE: 09:00 - 15:30 JST)`;
+    if (asia.isWeekend) {
+      asiaPill.className = 'market-ticker-pill closed';
+      asiaBadge.innerText = 'Cerrado';
+    } else if ((asia.timeDec >= 9.0 && asia.timeDec < 11.5) || (asia.timeDec >= 12.5 && asia.timeDec < 15.5)) {
       asiaPill.className = 'market-ticker-pill open';
       asiaBadge.innerText = 'Abierto';
+    } else if (asia.timeDec >= 11.5 && asia.timeDec < 12.5) {
+      asiaPill.className = 'market-ticker-pill pre-market';
+      asiaBadge.innerText = 'Almuerzo';
+    } else if (asia.timeDec >= 8.0 && asia.timeDec < 9.0) {
+      asiaPill.className = 'market-ticker-pill pre-market';
+      asiaBadge.innerText = 'Pre-Mercado';
     } else {
       asiaPill.className = 'market-ticker-pill closed';
       asiaBadge.innerText = 'Cerrado';
