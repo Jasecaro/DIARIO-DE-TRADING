@@ -16,6 +16,7 @@ let state = {
   editingTradeIndex: -1,
   equityChart: null,
   errorsChart: null,
+  scatterChart: null,
   userAccounts: [],
   currentSessionAccounts: [],
   currentSessionAccountRisks: {},

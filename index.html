@@ -11,7 +11,7 @@
   <link rel="alternate icon" type="image/png" href="favicon.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.4">
   
   <!-- FontAwesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -484,36 +484,98 @@
         </div>
       </div>
 
-      <!-- Top Metrics -->
-      <div class="metrics-grid">
-        <div class="metric-card profit-theme">
-          <div class="metric-label">P&L Acumulado ($)</div>
-          <div class="metric-value" id="dash-net-pnl">$0.00</div>
-          <div class="metric-subtext" id="dash-pnl-sub"><i class="fa-solid fa-arrow-trend-up"></i> 0 Sesiones</div>
+      <!-- Top 8-KPIs Metric Bar (Estilo TradeZella) -->
+      <div class="dash-kpis-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">P&L Neto</div>
+          <div class="kpi-value" id="dash-net-pnl">$0.00</div>
+          <div class="kpi-subtext" id="dash-pnl-sub">Comisiones: $0.00</div>
         </div>
 
-        <div class="metric-card purple-theme">
-          <div class="metric-label">Win Rate (%)</div>
-          <div class="metric-value" id="dash-winrate">0.0%</div>
-          <div class="metric-subtext" id="dash-winrate-sub">0 Ganadas / 0 Perdidas</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Win Rate</div>
+          <div class="kpi-value" id="dash-winrate">0.0%</div>
+          <div class="kpi-subtext" id="dash-winrate-sub">0 ganadores · 0 perdedores</div>
         </div>
 
-        <div class="metric-card profit-theme">
-          <div class="metric-label">Profit Factor</div>
-          <div class="metric-value" id="dash-profit-factor">0.00</div>
-          <div class="metric-subtext">Beneficio Bruto / Pérdida Bruta</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Profit Factor</div>
+          <div class="kpi-value" id="dash-profit-factor">0.00</div>
+          <div class="kpi-subtext" id="dash-expectancy-sub">Esperanza: $0.00/trade</div>
         </div>
 
-        <div class="metric-card warning-theme">
-          <div class="metric-label">Índice de Disciplina</div>
-          <div class="metric-value" id="dash-discipline">10.0 / 10</div>
-          <div class="metric-subtext"><i class="fa-solid fa-shield-halved"></i> Adherencia al Plan</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Días en Verde</div>
+          <div class="kpi-value" id="dash-green-days">0.0%</div>
+          <div class="kpi-subtext" id="dash-green-days-sub">0 en verde · 0 en rojo</div>
         </div>
 
-        <div class="metric-card loss-theme">
-          <div class="metric-label">Max Drawdown ($)</div>
-          <div class="metric-value" id="dash-drawdown">$0.00</div>
-          <div class="metric-subtext">Pérdida Máxima Consecutiva</div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ganancia Media</div>
+          <div class="kpi-value profit" id="dash-avg-win">+$0.00</div>
+          <div class="kpi-subtext" id="dash-avg-loss-sub">Pérdida media: -$0.00</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Ratio Ganancia/Pérdida</div>
+          <div class="kpi-value" id="dash-win-loss-ratio">0.00</div>
+          <div class="kpi-subtext" id="dash-avg-r-sub">R medio: 0.00R</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Drawdown Máximo</div>
+          <div class="kpi-value loss" id="dash-drawdown">-$0.00</div>
+          <div class="kpi-subtext" id="dash-streaks-sub">Rachas máx.: 0 / 0</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Trades</div>
+          <div class="kpi-value" id="dash-total-trades">0</div>
+          <div class="kpi-subtext" id="dash-contracts-sub">Contratos: 0 · 0 días</div>
+        </div>
+      </div>
+
+      <!-- PATRONES EN TUS DATOS (Smart Insights Engine) -->
+      <div class="dashboard-patterns-card" id="dashboard-patterns-card">
+        <div class="patterns-header">
+          <div class="patterns-title">
+            <i class="fa-solid fa-lightbulb"></i> PATRONES EN TUS DATOS
+          </div>
+          <div class="patterns-badge" style="font-size: 0.72rem; color: var(--text-subtle);">
+            <i class="fa-solid fa-bolt"></i> Auditoría Automática
+          </div>
+        </div>
+
+        <div class="patterns-columns-grid">
+          <!-- Columna Leaks / Te está costando dinero -->
+          <div class="patterns-col">
+            <div class="patterns-col-title" style="color: #f43f5e;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Te está costando dinero
+            </div>
+            <div class="patterns-list" id="dash-patterns-leaks">
+              <div class="pattern-item leak">
+                <i class="fa-solid fa-arrow-trend-down"></i>
+                <span>Registra trades para que el sistema identifique fugas de capital y errores repetitivos.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Edge / Lo que te funciona -->
+          <div class="patterns-col">
+            <div class="patterns-col-title" style="color: #10b981;">
+              <i class="fa-solid fa-circle-check"></i> Lo que te funciona
+            </div>
+            <div class="patterns-list" id="dash-patterns-edge">
+              <div class="pattern-item edge">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+                <span>Agrega operaciones para descubrir tus mejores horarios, activos y estados psicológicos.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="patterns-footer" id="dash-patterns-footer">
+          Basado en 0 trades del periodo seleccionado.
         </div>
       </div>
 
@@ -569,6 +631,123 @@
         <!-- Calendar Days Grid -->
         <div class="calendar-days-grid" id="dashboard-calendar-grid">
           <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- SALIDAS & DISPERSIÓN DE TRADES (MAE / MFE & P&L DE TRADES) -->
+      <div class="dashboard-scatter-card" id="dashboard-scatter-card">
+        <div class="scatter-header">
+          <div class="scatter-title">
+            <i class="fa-solid fa-chart-line"></i> Salidas & Dispersión de Trades (P&L por Operación)
+          </div>
+          <div class="scatter-badges-row">
+            <div class="scatter-badge-item">
+              <span class="scatter-badge-label">Aprovechamiento</span>
+              <span class="scatter-badge-val" id="dash-scatter-wr">0%</span>
+              <span class="scatter-badge-sub">Win Rate neto de operaciones</span>
+            </div>
+            <div class="scatter-badge-item">
+              <span class="scatter-badge-label">R Medio Logrado</span>
+              <span class="scatter-badge-val" id="dash-scatter-avg-r">0.00R</span>
+              <span class="scatter-badge-sub">Retorno medio por trade</span>
+            </div>
+            <div class="scatter-badge-item">
+              <span class="scatter-badge-label">Mayor Ganancia</span>
+              <span class="scatter-badge-val profit" id="dash-scatter-max-win">+$0.00</span>
+              <span class="scatter-badge-sub">Mejor trade cerrado</span>
+            </div>
+            <div class="scatter-badge-item">
+              <span class="scatter-badge-label">Mayor Pérdida</span>
+              <span class="scatter-badge-val loss" id="dash-scatter-max-loss">-$0.00</span>
+              <span class="scatter-badge-sub">Peor trade cerrado</span>
+            </div>
+          </div>
+        </div>
+        <div style="position: relative; height: 280px; width: 100%;">
+          <canvas id="chartScatter"></canvas>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.5rem; text-align: right;">
+          Cada punto es un trade: orden cronológico (eje horizontal) y P&L neto (eje vertical).
+        </div>
+      </div>
+
+      <!-- GRID DE DESGLOSES ANALÍTICOS (7 CARDS HORIZONTALES) -->
+      <div class="breakdowns-grid" id="dashboard-breakdowns-grid">
+        <!-- 1. Por Hora de Entrada -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-regular fa-clock"></i> Por Hora de Entrada</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Hora NY / Local</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-hours">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 2. Por Día de la Semana -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-regular fa-calendar-days"></i> Por Día de la Semana</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Lun - Vie</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-weekdays">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 3. Por Instrumento -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-solid fa-coins"></i> Por Instrumento</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Futuros / Activos</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-assets">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 4. Largos vs Cortos -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-solid fa-arrows-up-down"></i> Largos vs Cortos</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Dirección</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-direction">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 5. Por Playbook / Setup -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-solid fa-chess-knight"></i> Por Playbook / Setup</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Estrategia</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-setups">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 6. Lo que te Cuestan tus Errores -->
+        <div class="breakdown-card">
+          <div class="breakdown-header">
+            <span><i class="fa-solid fa-ban" style="color: #f43f5e;"></i> Lo que te Cuestan tus Errores</span>
+            <span style="font-size: 0.65rem; color: #f43f5e;">Fugas ($)</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-mistakes">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 7. Por Estado al Entrar (Emoción) -->
+        <div class="breakdown-card span-2">
+          <div class="breakdown-header">
+            <span><i class="fa-solid fa-brain" style="color: var(--accent-primary);"></i> Por Estado al Entrar (Psicología)</span>
+            <span style="font-size: 0.65rem; color: var(--text-subtle);">Emociones y P&L</span>
+          </div>
+          <div class="breakdown-list" id="dash-breakdown-emotions">
+            <!-- Rendered dynamically -->
+          </div>
         </div>
       </div>
 
@@ -2471,18 +2650,18 @@ Por ejemplo:
   <div class="toast-container" id="toast-container"></div>
 
   <!-- TheRaiseTrader Modular Architecture -->
-  <script src="js/config-state.js?v=2.3"></script>
-  <script src="js/storage-accounts.js?v=2.3"></script>
-  <script src="js/ui-core.js?v=2.3"></script>
-  <script src="js/trades-manager.js?v=2.3"></script>
-  <script src="js/session-workflow.js?v=2.3"></script>
-  <script src="js/dashboard-metrics.js?v=2.3"></script>
-  <script src="js/calendar-view.js?v=2.3"></script>
-  <script src="js/history-manager.js?v=2.3"></script>
-  <script src="js/reports-notebooklm.js?v=2.3"></script>
-  <script src="js/playbook-generator.js?v=2.3"></script>
-  <script src="js/supabase-sync.js?v=2.3"></script>
-  <script src="js/main.js?v=2.3"></script>
+  <script src="js/config-state.js?v=2.4"></script>
+  <script src="js/storage-accounts.js?v=2.4"></script>
+  <script src="js/ui-core.js?v=2.4"></script>
+  <script src="js/trades-manager.js?v=2.4"></script>
+  <script src="js/session-workflow.js?v=2.4"></script>
+  <script src="js/dashboard-metrics.js?v=2.4"></script>
+  <script src="js/calendar-view.js?v=2.4"></script>
+  <script src="js/history-manager.js?v=2.4"></script>
+  <script src="js/reports-notebooklm.js?v=2.4"></script>
+  <script src="js/playbook-generator.js?v=2.4"></script>
+  <script src="js/supabase-sync.js?v=2.4"></script>
+  <script src="js/main.js?v=2.4"></script>
 </body>
 </html>
 

@@ -62,6 +62,10 @@ CREATE POLICY "Users can delete their own sessions"
 CREATE INDEX IF NOT EXISTS idx_trading_sessions_user_date 
   ON public.trading_sessions (user_id, date DESC);
 
+-- Permisos explícitos para Data API (PostgREST)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trading_sessions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trading_sessions TO service_role;
+
 -- ==============================================================================
 -- 5. TABLA DE PLAYBOOK / ESTRATEGIA DE TRADING (IA & NOTEBOOKLM)
 -- ==============================================================================
@@ -93,4 +97,8 @@ CREATE POLICY "Users can update their own playbooks"
 DROP POLICY IF EXISTS "Users can delete their own playbooks" ON public.trading_playbooks;
 CREATE POLICY "Users can delete their own playbooks" 
   ON public.trading_playbooks FOR DELETE USING (auth.uid() = user_id);
+
+-- Permisos explícitos para Data API (PostgREST)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trading_playbooks TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trading_playbooks TO service_role;
 
